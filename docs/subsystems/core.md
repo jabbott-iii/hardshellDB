@@ -2,8 +2,9 @@
 
 Foundation types used by every other crate. No `unsafe`, no OS calls beyond
 `std` time, no dependencies (layer 0). M0.2 built the errors (`sqlstate`,
-`error`); the rest of M0 builds the other modules the guardrails need
-(`crc32c`, `varint`, `rng`, `testing`, `cli`, `log`), and later milestones
+`error`), and M0.3 the checksums, varints, hashing and random numbers
+(`crc32c`, `varint`, `hash`, `rng`); the rest of M0 builds the other
+modules the guardrails need (`testing`, `cli`, `log`), and later milestones
 add to it only when two or more crates need the same thing.
 
 ## Contents
@@ -11,12 +12,12 @@ add to it only when two or more crates need the same thing.
 | Module | Provides |
 | :- | :- |
 | `sqlstate` | `SqlState` (five ASCII bytes), one named constant per row of the table below plus `SqlState::ALL`, `class()`, `as_str()`, `Display` as the five-character code |
-| `error` | `SqlStateError` (the `sqlstate()` every error type implements), `ContextError` and the `ErrorContext` helper for adding "while doing X" notes without changing the SQLSTATE; `CoreError` arrives with core's first decoder (M0.3) |
-| `bytes` | `Reader` (bounds-checked little-endian reads with an offset, every read returns `Result`) and `Writer` (appends to a reused `Vec<u8>`) for every decoder and encoder in the workspace |
-| `crc32c` | CRC-32C (Castagnoli, reflected polynomial `0x82F63B78`), table-driven slicing-by-8; `crc32c(&[u8])` and `Crc32c::update` for chained checksums (ADR-0009) |
-| `varint` | Unsigned LEB128 for `u64`, zigzag for `i64`; decode returns the value and the bytes used, and rejects overlong encodings |
-| `hash` | `fnv1a64`; `FastHasher` with `FastHashMap` / `FastHashSet` aliases (deterministic, non-cryptographic) |
-| `rng` | `Pcg32` (seedable, `next_u32`, `next_u64`, `range`, `shuffle`, `fill_bytes`); not for secrets |
+| `error` | `SqlStateError` (the `sqlstate()` every error type implements), `ContextError` and the `ErrorContext` helper for adding "while doing X" notes without changing the SQLSTATE; `CoreError`, this crate's own error: today the varint decoder's `VarintTruncated`, `VarintOverlong` and `VarintOverflow`, all `XX001` and without offsets (a caller reclassifies it and adds where the varint was) |
+| `bytes` | Not built yet: arrives with the first decoder that needs it, bringing `CoreError::Truncated { at, wanted }`. `Reader` (bounds-checked little-endian reads with an offset, every read returns `Result`) and `Writer` (appends to a reused `Vec<u8>`) for every decoder and encoder in the workspace |
+| `crc32c` | CRC-32C (Castagnoli, reflected polynomial `0x82F63B78`), table-driven slicing-by-8 over tables built by a `const fn`; `crc32c(&[u8])`, and `crc32c_append(crc, &[u8])`, which continues a finished checksum: the WAL's chained checksum and checksums over data in pieces (ADR-0009) |
+| `varint` | Unsigned LEB128 for `u64`: `encode_u64` appends to a `Vec<u8>`; `decode_u64` returns the value and the bytes used, reads at most 10 bytes, and accepts only the shortest encoding (truncated, overlong and over-64-bit forms are errors) |
+| `hash` | `fnv1a64` (fixed by its definition, so its values may be stored or printed); `FastHasher` (a folded multiply per 64-bit word, then a finishing fold) with `FastHashMap` / `FastHashSet` aliases: deterministic, non-cryptographic, values never stored. Neither resists chosen keys: use `RandomState` where a remote party picks them |
+| `rng` | `Pcg32`: `new(seed, stream)` as the reference's `pcg32_srandom_r`, `next_u32`, `next_u64` (low half first), `range(bound)` (unbiased; the reference's `pcg32_boundedrand_r` up to `u32::MAX`; panics on 0), `shuffle` (as the reference demo deals cards), `fill_bytes`; not for secrets |
 | `log` | Macros `error!`, `warn!`, `info!`, `debug!`, `trace!` with a module target; one global sink slot set by the facade's `set_log_sink`; with no sink each macro costs one atomic load |
 | `testing` | Property-test harness `check` and `check_sized`, `assert_approx!` (see `docs/04-quality.md`) |
 | `cli` | Minimal argument parser for `xtask`, `hardshell` and `hardshelld` (`--flag`, `--key value`, `-k value`, positionals, `--`) |
@@ -55,6 +56,37 @@ pub trait ErrorContext<T> {    // for Result<T, E> where E: SqlStateError + Send
         -> Result<T, ContextError>;
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CoreError {                       // XX001 for every variant; no offsets
+    VarintTruncated,                       // "invalid varint: truncated"
+    VarintOverlong,                        // "invalid varint: overlong encoding"
+    VarintOverflow,                        // "invalid varint: more than 64 bits"
+}
+
+pub fn crc32c(bytes: &[u8]) -> u32;
+pub fn crc32c_append(crc: u32, bytes: &[u8]) -> u32;  // from crc32c(a): the CRC of a, then bytes
+
+pub fn encode_u64(value: u64, out: &mut Vec<u8>);
+pub fn decode_u64(input: &[u8]) -> Result<(u64, usize), CoreError>;  // value, bytes used
+
+pub fn fnv1a64(bytes: &[u8]) -> u64;
+pub struct FastHasher { state: u64 }       // Default, Debug, Hasher
+pub type FastHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FastHasher>>;
+pub type FastHashSet<T> = HashSet<T, BuildHasherDefault<FastHasher>>;
+
+#[derive(Clone, Debug)]                    // not Copy: a copy repeats its sequence
+pub struct Pcg32 { state: u64, increment: u64 }
+
+impl Pcg32 {
+    pub fn new(seed: u64, stream: u64) -> Pcg32;      // 2^63 streams
+    pub fn next_u32(&mut self) -> u32;
+    pub fn next_u64(&mut self) -> u64;
+    pub fn range(&mut self, bound: usize) -> usize;   // 0..bound; panics if bound is 0
+    pub fn shuffle<T>(&mut self, items: &mut [T]);
+    pub fn fill_bytes(&mut self, bytes: &mut [u8]);
+}
+
+// Planned, not built (see the `bytes` row).
 pub struct Reader<'a> { buf: &'a [u8], pos: usize }
 
 impl<'a> Reader<'a> {
@@ -165,15 +197,23 @@ condition name, and a constant to `sqlstates!` in
 
 ## Invariants
 
-- Nothing in `core` panics on input. `Reader` never indexes past its buffer;
-  `varint` rejects encodings longer than 10 bytes and non-minimal ones.
+- Nothing in `core` panics on input. `varint::decode_u64` reads at most 10
+  bytes and never past the varint, and accepts only the shortest encoding,
+  so a decoded value re-encodes to exactly the bytes it used. `Reader`,
+  when it lands, never indexes past its buffer. The only documented panic
+  is a caller's bug, never input: `Pcg32::range(0)`.
 - `crc32c(b"123456789") == 0xE306_9283` (the standard check value), and
-  `Crc32c` chained over split input equals `crc32c` over the whole.
-- `Pcg32` output is identical across targets for the same seed (unit-tested
-  against fixed vectors).
-- `FastHashMap` iteration order depends only on insertion history, never
-  on per-process random state. Code whose output order matters (catalog
-  listings, `EXPLAIN`, dumps) sorts explicitly anyway.
+  `crc32c_append(crc32c(a), b)` is the CRC-32C of `a` then `b`, so a chain
+  over split input equals `crc32c` over the whole.
+- `Pcg32` gives the reference C library's outputs for the same seed and
+  stream on every target, `range` and `shuffle` included (unit-tested
+  against the reference demo's output).
+- A value's `FastHasher` hash is the same in every run and on every target
+  (pinned in tests). `FastHashMap` iteration order therefore depends only on
+  the operations applied, never on per-process random state; it can still
+  differ between targets and `std` releases (the table's probe groups are
+  not the same width everywhere). Code whose output order matters (catalog
+  listings, `EXPLAIN`, dumps) sorts.
 - `log` never allocates when no sink is installed, and never prints.
 - Every `SqlState` is one of the named constants; an invalid code fails the
   build.
@@ -184,6 +224,9 @@ condition name, and a constant to `sqlstates!` in
 `core` has no SQL-visible limits. `csv::Reader` has `max_field_bytes`
 (default 64 MiB) and `max_fields` (default 1,600, the column limit); past
 either it returns an error the facade reports as `22P04`.
+
+A varint is at most 10 bytes (64 bits in groups of seven): a property of
+the format, not a setting.
 
 ## Tests
 
@@ -198,15 +241,32 @@ either it returns an error the facade reports as `22P04`.
   is the wrapped error's; the note's closure runs only on `Err`; the wrapped
   error is reachable by downcast. `tests/error_context.rs` runs the
   conventions across crate-like layers, from outside the crate.
-- `crc32c` against published test vectors (RFC 3720 appendix B.4) and a
-  bit-at-a-time reference implementation in the test module.
-- Property tests: `varint` round-trips every `u64`/`i64` sample and rejects
-  overlong forms; `csv` write-then-read round-trips arbitrary fields
+- `crc32c` against published test vectors (the CRC catalogue's check value
+  and RFC 3720 appendix B.4) and a bit-at-a-time reference implementation
+  in the test module, at every length up to 80 bytes and every alignment;
+  `crc32c_append` at every split and pair of splits, and over the WAL's
+  chain.
+- `varint` hand-made vectors, and a differently shaped model decoder that
+  `decode_u64` must agree with on every input of up to two bytes, every
+  path through the decoder, every tenth byte (with an eleventh it must not
+  read) and 200,000 random inputs.
+- Property tests: `varint` round-trips every `u64` sample (boundaries and
+  100,000 values of uniform bit length) and rejects each one's truncated
+  and padded forms; `csv` write-then-read round-trips arbitrary fields
   (including quotes, delimiters, CR, LF and empty strings); `Reader` never
-  panics on random buffers and offsets.
-- `Pcg32` against fixed reference outputs.
+  panics on random buffers and offsets. M0.3's are plain seeded `Pcg32`
+  loops, written before `testing::check` existed.
+- `Pcg32` against the reference demo's first round for seed 42 and stream
+  54 (six outputs, 65 coin flips, 33 dice rolls, a 52-card shuffle);
+  `range` rejects the biased outputs on both its paths, and matches the
+  reference at the edge of its rejection threshold on both.
+- `fnv1a64` against the vectors of `test_fnv.c`, the FNV reference test
+  suite. `FastHasher`: pinned values; inputs of different lengths differ,
+  every tail length of 0 to 7 bytes included;
+  page numbers, strided and high-bit integers, pairs and names spread over
+  buckets and tags as random hashes would.
 - `civil` against known timestamps, including leap years and 2038.
-- Fuzz target `csv` (`docs/04-quality.md`).
+- Fuzz targets `varint` (M0.6) and `csv` (`docs/04-quality.md`).
 
 ## Open questions
 

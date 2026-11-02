@@ -144,8 +144,11 @@ given).
   length read from disk is checked against the remaining input and a limit
   before use.
 - **Determinism:** no `std::collections::HashMap` with `RandomState` where
-  iteration order can reach results, files or tests; use `FastHashMap` or
-  sort. Results without `ORDER BY` may come in any order, so SLT files use
+  iteration order can reach results, files or tests; use `FastHashMap`,
+  whose order is the same in every run but can differ between targets and
+  `std` releases. Sort wherever order must match across targets: bytes
+  written to files, printed listings, `EXPLAIN`, and test expectations.
+  Results without `ORDER BY` may come in any order, so SLT files use
   `rowsort` for them.
 - **Docs:** every `pub` item has a doc comment (`missing_docs` is `-D` in
   CI).

@@ -88,7 +88,7 @@ enforced by tooling from day one.
     so any error takes one without opting in; the conventions are in
     core.md, "Error conventions". `CoreError` waits for M0.3.
 
-- [ ] **M0.3 — core: CRC-32C, varints, hashing, RNG**
+- [x] **M0.3 — core: CRC-32C, varints, hashing, RNG**
   - Depends: M0.1
   - Do: table-driven CRC-32C (Castagnoli) with incremental update; LEB128
     `u64` varints with a checked decoder; FNV-1a 64 and a deterministic fast
@@ -103,6 +103,28 @@ enforced by tooling from day one.
     implements `hardshell_core::error::SqlStateError` (core.md, "Error
     conventions"). Its own code is this task's choice; callers reclassify
     it into their own variants (storage `XX001`, wire `08P01`).
+  - Note: ADR-0009 accepted (2026-11-02).
+  - Note: `CoreError` reports `XX001`. Its variants `VarintTruncated`,
+    `VarintOverlong` and `VarintOverflow` carry no offsets: the decoder
+    sees only a slice that starts at the varint, so a caller adds the
+    position when it reclassifies. Zigzag `i64` varints were dropped for
+    lack of a consumer; `bytes::Reader` and `Writer` wait for their first
+    decoder. `crc32c_append(crc, bytes)` replaces the planned
+    `Crc32c::update`: a finished checksum is the whole state, so
+    continuing one needs no struct.
+  - Note: reference vectors, fetched and re-derived on 2026-11-02: the CRC
+    catalogue's CRC-32/ISCSI check value and RFC 3720 appendix B.4;
+    `test_fnv.c` from the FNV reference suite; round 1 of pcg-c-basic's
+    `pcg32-demo` (the same values as round 1 of pcg-c's
+    `test-high/expected/check-pcg32.out`, less its `Again:` line).
+  - Note: `FastHashMap` iteration order is the same in every run but not
+    across targets (hashbrown's probe groups are 16 wide with SSE2 and 8
+    wide on aarch64), so AGENTS.md's determinism rule now asks for a sort
+    wherever order must match across targets.
+  - Note: `FastHasher` folds each 64-bit word into its state (a 128-bit
+    product whose halves are XORed) and folds once more in `finish`.
+    `Pcg32::range` and `shuffle` match the reference exactly; `next_u64`
+    takes its first output as the low half.
 
 - [ ] **M0.4 — core: property-test harness and logging**
   - Depends: M0.3
@@ -113,6 +135,10 @@ enforced by tooling from day one.
     with no sink allocates nothing (test with a counting allocator in the
     test binary).
   - Verify: `cargo test -p hardshell-core`
+  - Note (from M0.3): seeding case `i` as `Pcg32::new(seed, i)` lets the
+    reported seed and case replay that case alone, and lets `check_sized`
+    rebuild it to shrink. M0.3's property tests are plain seeded loops;
+    moving them onto `check` is optional.
 
 - [ ] **M0.5 — xtask: deps, layers, unsafe-audit, headers, ci**
   - Depends: M0.1
@@ -155,6 +181,11 @@ enforced by tooling from day one.
   - Accept: a test target that panics on a magic byte is found within the
     unit test's budget; a clean run exits 0, a finding exits 1.
   - Verify: `cargo test -p xtask`; `cargo xtask fuzz-smoke --secs 5`
+  - Note (from M0.3): `varint::decode_u64` accepts only the shortest
+    encoding, so the `varint` target can also check that a decoded value
+    re-encodes to exactly the bytes it used. `Pcg32::range` panics on a
+    bound of 0: a mutator picking a position in an input that may be empty
+    checks first.
 
 - [ ] **M0.7 — bench: harness**
   - Depends: M0.4
@@ -314,6 +345,10 @@ ADR-0009). Starts by settling those three ADRs with the user.
     correctly; concurrent readers never block; a second writer waits then
     times out with `55P03`; stale upgrade gives `40001`.
   - Verify: `cargo test -p hardshell-storage`
+  - Note (from M0.3): the dirty-page map is a `FastHashMap`, whose order
+    can differ between targets. Writing a commit's frames in page-number
+    order, not map order, keeps WAL bytes and `FaultVfs` call sequences
+    the same on every target, so a crash-campaign seed replays anywhere.
 
 - [ ] **M2.4 — storage: checkpoint, WAL reset and clean close**
   - Depends: M2.3
@@ -1094,6 +1129,11 @@ v3.0, and `psql` works against it (ADR-0016).
   - Accept: the SLT corpus with parameters through the extended protocol
     matches embedded results.
   - Verify: `cargo test -p hardshell-server`
+  - Note (from M0.3): `server-and-wire.md` keys a session's statements and
+    portals by client-chosen names in `FastHashMap`s, which do not resist
+    chosen keys; `docs/02-dependency-policy.md` (item 12) wants
+    `RandomState` where input may be adversarial. Each map belongs to one
+    connection, so a client could only slow its own session. Decide here.
 
 - [ ] **M12.6 — server: cancellation, timeouts and shutdown**
   - Depends: M12.5

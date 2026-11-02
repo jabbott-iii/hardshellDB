@@ -262,7 +262,7 @@ change or reject each before the roadmap task that depends on it starts.
 
 ## ADR-0009 — Every page and WAL frame carries a CRC-32C; an fsync failure poisons the handle
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-01
 - **Context:** Disks, filesystems and OSes lose and corrupt data. Since
   2018 it is well known that on Linux a failed `fsync` may drop the dirty

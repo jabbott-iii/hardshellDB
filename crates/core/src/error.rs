@@ -14,7 +14,8 @@
 
 //! Error conventions shared by every crate (`docs/subsystems/core.md`,
 //! "Error conventions"): the [`SqlStateError`] trait every error type
-//! implements, and [`ErrorContext`] for adding "while doing X" notes.
+//! implements, [`ErrorContext`] for adding "while doing X" notes, and
+//! [`CoreError`], this crate's own error.
 
 use crate::sqlstate::SqlState;
 use std::borrow::Cow;
@@ -100,9 +101,56 @@ where
     }
 }
 
+/// The error of `hardshell-core`'s decoders: today, only
+/// [`varint::decode_u64`](crate::varint::decode_u64).
+///
+/// Its SQLSTATE is `XX001` (`data_corrupted`): varints appear only in the
+/// engine's own file format (today, the row format), never in user or
+/// client input, so a malformed one means a damaged or crafted file. A
+/// caller reclassifies it into a
+/// variant of its own error with its own code (core.md, "Reclassifying is a
+/// variant"), adding the facts this error cannot know, such as the page and
+/// the varint's offset in it. The variants carry no offsets: the decoder
+/// sees only a slice that starts at the varint.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CoreError {
+    /// The input ended before the varint's last byte (the first byte with
+    /// its high bit clear).
+    VarintTruncated,
+    /// The varint is not the shortest encoding of its value: its last byte
+    /// is `0x00` and is not its first.
+    VarintOverlong,
+    /// The varint holds more than 64 bits: its tenth byte is more than
+    /// `0x01`, so its value does not fit in a `u64` or it continues past
+    /// ten bytes.
+    VarintOverflow,
+}
+
+impl fmt::Display for CoreError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            CoreError::VarintTruncated => "invalid varint: truncated",
+            CoreError::VarintOverlong => "invalid varint: overlong encoding",
+            CoreError::VarintOverflow => "invalid varint: more than 64 bits",
+        })
+    }
+}
+
+impl Error for CoreError {}
+
+impl SqlStateError for CoreError {
+    fn sqlstate(&self) -> SqlState {
+        match self {
+            CoreError::VarintTruncated | CoreError::VarintOverlong | CoreError::VarintOverflow => {
+                SqlState::DATA_CORRUPTED
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{ContextError, ErrorContext, SqlStateError};
+    use super::{ContextError, CoreError, ErrorContext, SqlStateError};
     use crate::sqlstate::SqlState;
     use std::cell::Cell;
     use std::error::Error;
@@ -203,5 +251,33 @@ mod tests {
         check::<ContextError>();
         let boxed: Box<dyn Error + Send + Sync> = Box::new(two_notes(None));
         assert!(boxed.to_string().ends_with("while opening \"app.hsdb\""));
+    }
+
+    #[test]
+    fn core_error_is_data_corrupted_with_postgres_style_messages() {
+        fn check<T: SqlStateError + Send + Sync + 'static>() {}
+        check::<CoreError>();
+        for (error, text) in [
+            (CoreError::VarintTruncated, "invalid varint: truncated"),
+            (
+                CoreError::VarintOverlong,
+                "invalid varint: overlong encoding",
+            ),
+            (
+                CoreError::VarintOverflow,
+                "invalid varint: more than 64 bits",
+            ),
+        ] {
+            assert_eq!(error.to_string(), text);
+            assert_eq!(error.sqlstate(), SqlState::DATA_CORRUPTED);
+            assert!(error.source().is_none());
+            let noted = Err::<(), _>(error)
+                .with_context(|| "while reading row 3")
+                .unwrap_err();
+            assert_eq!(noted.sqlstate(), SqlState::DATA_CORRUPTED);
+            assert_eq!(noted.to_string(), format!("{text}; while reading row 3"));
+            let inner: &(dyn Error + 'static) = noted.error();
+            assert!(inner.downcast_ref::<CoreError>().is_some());
+        }
     }
 }

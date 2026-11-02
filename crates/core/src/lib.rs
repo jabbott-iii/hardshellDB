@@ -18,5 +18,9 @@
 //! the property-test harness, the CLI argument parser and the CSV codec.
 //! It depends on no other crate. Design: `docs/subsystems/core.md`.
 
+pub mod crc32c;
 pub mod error;
+pub mod hash;
+pub mod rng;
 pub mod sqlstate;
+pub mod varint;
