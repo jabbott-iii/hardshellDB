@@ -5,8 +5,9 @@ data, so the bar for changes to storage, durability and SQL semantics is
 high: every change comes with the tests that prove it, and nothing is
 claimed that was not run.
 
-The project is in planning: the workspace does not exist yet, and the
-commands below arrive with the roadmap tasks named beside them.
+The project is at its first milestone: the workspace holds only empty
+crates so far, and the commands below arrive with the roadmap tasks named
+beside them.
 
 ## Contribution workflow
 

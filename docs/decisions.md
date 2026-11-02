@@ -354,7 +354,7 @@ change or reject each before the roadmap task that depends on it starts.
 
 ## ADR-0013 — `unsafe` is denied everywhere; only `hardshell-os` may opt in, and only by a new ADR
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-01
 - **Context:** Nadir allows `unsafe` in three FFI crates because it binds
   windowing and GPU APIs. A database needs much less: `std` already offers
@@ -397,7 +397,7 @@ change or reject each before the roadmap task that depends on it starts.
 
 ## ADR-0015 — The Apache-2.0 header on every source file
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-01
 - **Context:** The repository is Apache-2.0 (`LICENSE`). Nadir puts the
   license's appendix header on every source file and checks it in CI

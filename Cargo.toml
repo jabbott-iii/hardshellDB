@@ -1,0 +1,67 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/core",
+    "crates/os",
+    "crates/types",
+    "crates/wire",
+    "crates/storage",
+    "crates/sql",
+    "crates/catalog",
+    "crates/plan",
+    "crates/exec",
+    "crates/hardshelldb",
+    "apps/cli",
+    "apps/server",
+    "xtask",
+    "bench",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/jabbott-iii/hardshellDB"
+
+# Only the library crates: nothing may depend on an application (layer 7).
+# Which crate may depend on which is the matrix in docs/01-architecture.md.
+[workspace.dependencies]
+hardshell-core = { path = "crates/core" }
+hardshell-os = { path = "crates/os" }
+hardshell-types = { path = "crates/types" }
+hardshell-wire = { path = "crates/wire" }
+hardshell-storage = { path = "crates/storage" }
+hardshell-sql = { path = "crates/sql" }
+hardshell-catalog = { path = "crates/catalog" }
+hardshell-plan = { path = "crates/plan" }
+hardshell-exec = { path = "crates/exec" }
+hardshelldb = { path = "crates/hardshelldb" }
+
+[workspace.lints.rust]
+unsafe_code = "deny"              # only hardshell-os may override, and only by ADR (ADR-0013)
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"             # -D in CI
+unreachable_pub = "warn"
+
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
+multiple_unsafe_ops_per_block = "deny"
+unwrap_used = "deny"
+print_stdout = "deny"             # the CLI and server allow it at their crate roots, with a comment
+print_stderr = "deny"
+dbg_macro = "deny"
+todo = "deny"
+exit = "deny"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+debug = "line-tables-only"     # symbolicated backtraces in bug reports
+panic = "unwind"               # the fuzz harness relies on catch_unwind;
+                               # the engine never relies on unwinding (docs/05-release.md, "Panics")
+
+[profile.xtask]                # what `cargo xtask` builds with
+inherits = "dev"
+opt-level = 3                  # faster fuzzing and crash campaigns; overflow checks
+                               # and debug assertions stay on

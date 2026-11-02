@@ -18,7 +18,8 @@ How to use this file:
   accept, change or reject it (`docs/decisions.md`).
 - Every task that adds SQL surface also updates `docs/sql-reference.md`.
 
-Status: nothing is built yet. Every box is unchecked.
+Status: M0.1 is done (an empty, guarded workspace); every other box is
+unchecked.
 
 ---
 
@@ -27,7 +28,7 @@ Status: nothing is built yet. Every box is unchecked.
 **Goal:** an empty but fully guarded workspace. The constraints are
 enforced by tooling from day one.
 
-- [ ] **M0.1 — Workspace skeleton**
+- [x] **M0.1 — Workspace skeleton**
   - Depends: —
   - Do:
     - Create every crate in the workspace map (`AGENTS.md`) as an empty
@@ -52,6 +53,16 @@ enforced by tooling from day one.
   - Verify: `cargo build --workspace`;
     `cargo clippy --workspace --all-targets -- -D warnings`;
     `grep -c 'source = ' Cargo.lock` (expect 0)
+  - Note: toolchain pinned to Rust 1.99.0, the installed stable on
+    2026-11-01.
+  - Note: both profiles (`release`, `xtask`) live in the root `Cargo.toml`,
+    as `docs/01-architecture.md` and `docs/05-release.md` show;
+    `.cargo/config.toml` holds only the alias (user decision, 2026-11-01).
+  - Note: `[workspace.dependencies]` lists only the library crates, since
+    nothing may depend on an application. No crate depends on another yet.
+    `xtask` and `hardshell-bench` are `publish = false`.
+  - Note: ADR-0013 and ADR-0015 accepted (2026-11-01). Every `.rs` file
+    starts with the ADR-0015 header from M0.1 on; TOML files have none.
 
 - [ ] **M0.2 — core: errors and SQLSTATE codes**
   - Depends: M0.1
@@ -113,6 +124,9 @@ enforced by tooling from day one.
     unit tests and passes on the workspace; exit codes 0 pass, 1 fail,
     2 usage error.
   - Verify: `cargo xtask ci`
+  - Note (from M0.1): every `.rs` file already carries the header. Decide
+    which other files `headers` covers (TOML manifests and configs have
+    none yet).
 
 - [ ] **M0.6 — xtask: fuzz-smoke harness**
   - Depends: M0.5, M0.3

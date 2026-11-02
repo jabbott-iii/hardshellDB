@@ -1,12 +1,12 @@
 # hardshellDB — an all-in-one SQL database engine and library (Rust)
 
-**Status:** planning complete, nothing built. The workspace does not exist
-yet: roadmap task M0.1 creates it. `docs/roadmap.md` ticks each task once it
+**Status:** the workspace exists (M0.1), but every crate is still empty.
+`docs/roadmap.md` ticks each task once it
 is done and verified. A task whose code is written but still needs a check
 on another OS stays unticked, with a `⏳ needs <OS>` note. The next task is
 the first unticked one whose dependencies are all ticked, skipping one
 whose remaining work needs an OS you cannot run. This document describes
-crates, commands and checks that do not exist yet: check before assuming.
+code, commands and checks that do not exist yet: check before assuming.
 
 ## What we are building
 
@@ -88,7 +88,7 @@ crates, commands and checks that do not exist yet: check before assuming.
     the repository, test fixtures included. Release secrets exist only in
     CI secret storage (`docs/05-release.md`).
 
-## Workspace map (planned; M0.1 creates it)
+## Workspace map (crates created in M0.1, filled in by the milestones shown)
 
 | Path | Package | Purpose | Built in |
 | :- | :- | :- | :- |
