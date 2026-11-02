@@ -1,6 +1,6 @@
 # hardshellDB — an all-in-one SQL database engine and library (Rust)
 
-**Status:** the workspace exists (M0.1), but every crate is still empty.
+**Status:** the workspace exists (M0.1) and holds little code so far.
 `docs/roadmap.md` ticks each task once it
 is done and verified. A task whose code is written but still needs a check
 on another OS stays unticked, with a `⏳ needs <OS>` note. The next task is

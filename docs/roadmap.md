@@ -18,8 +18,7 @@ How to use this file:
   accept, change or reject it (`docs/decisions.md`).
 - Every task that adds SQL surface also updates `docs/sql-reference.md`.
 
-Status: M0.1 is done (an empty, guarded workspace); every other box is
-unchecked.
+Status: work has started at M0; a ticked box is done.
 
 ---
 
@@ -64,7 +63,7 @@ enforced by tooling from day one.
   - Note: ADR-0013 and ADR-0015 accepted (2026-11-01). Every `.rs` file
     starts with the ADR-0015 header from M0.1 on; TOML files have none.
 
-- [ ] **M0.2 — core: errors and SQLSTATE codes**
+- [x] **M0.2 — core: errors and SQLSTATE codes**
   - Depends: M0.1
   - Do: `SqlState` (five ASCII characters, `Display`, class accessor) and
     named constants for every code the docs use; `ErrorContext` for adding
@@ -76,6 +75,18 @@ enforced by tooling from day one.
     - Constants are valid codes (`[0-9A-Z]{5}`), and the class of each is
       its first two characters.
   - Verify: `cargo test -p hardshell-core`
+  - Note: 59 constants, one per row of core.md's table (`428C9` was used
+    by M7.8 but missing from the table, and is added). Every code and name
+    was checked against PostgreSQL's documentation (Appendix A) and its
+    `errcodes.txt` on 2026-11-02.
+  - Note: the docs test reads a five-character word with a digit as a
+    SQLSTATE when it is a whole code span, or anywhere when it is in one of
+    PostgreSQL 17.4's 42 classes; `NOT_SQLSTATES` lists the exceptions
+    (today only `--iterations 20000`). It also checks that the table, the
+    constants' names, their doc comments and `SqlState::ALL`'s order agree.
+  - Note: notes added with `ErrorContext` are type-erased (`ContextError`),
+    so any error takes one without opting in; the conventions are in
+    core.md, "Error conventions". `CoreError` waits for M0.3.
 
 - [ ] **M0.3 — core: CRC-32C, varints, hashing, RNG**
   - Depends: M0.1
@@ -88,6 +99,10 @@ enforced by tooling from day one.
       and round-trips every `u64` tested (property test).
     - FNV-1a and `Pcg32` match their reference vectors.
   - Verify: `cargo test -p hardshell-core`
+  - Note (from M0.2): the varint decoder's errors start `CoreError`, which
+    implements `hardshell_core::error::SqlStateError` (core.md, "Error
+    conventions"). Its own code is this task's choice; callers reclassify
+    it into their own variants (storage `XX001`, wire `08P01`).
 
 - [ ] **M0.4 — core: property-test harness and logging**
   - Depends: M0.3
@@ -244,6 +259,10 @@ direct write; M2 replaces it with the WAL.
     with every frame pinned a fetch fails with `53200` instead of
     blocking or panicking.
   - Verify: `cargo test -p hardshell-storage`
+  - Note (from M0.2): a review questioned `53200` (`out_of_memory`) for an
+    all-pinned pool, since PostgreSQL keeps that code for failed
+    allocations; class 53's general code, `insufficient_resources`, may fit
+    better. Decide with the user before relying on it.
 
 - [ ] **M1.6 — storage: free list and page allocation**
   - Depends: M1.5
@@ -488,6 +507,10 @@ and reject everything else with `0A000` or `42601` (ADR-0011).
   - Accept: unit tests per token kind; unterminated strings and comments
     report the start position.
   - Verify: `cargo test -p hardshell-sql`
+  - Note (from M0.2): a review questioned `42601` for `$0` and parameter
+    numbers above 65535 (`docs/subsystems/sql-frontend.md`): PostgreSQL may
+    report a missing parameter as `undefined_parameter`. Cite PostgreSQL's
+    behavior or mark the test "verify against psql in M9.6".
 
 - [ ] **M5.2 — sql: expressions**
   - Depends: M5.1
@@ -570,6 +593,10 @@ tested by SQL logic tests.
   - Accept: unit tests per operator; a sort larger than `work_mem` fails
     with `53200`.
   - Verify: `cargo test -p hardshell-plan -p hardshell-exec`
+  - Note (from M0.2): a review questioned `53200` (`out_of_memory`) for a
+    `work_mem` breach, which is a configured budget rather than a failed
+    allocation; PostgreSQL reports `temp_file_limit` as `53400`. Raise it
+    with the user together with ADR-0012, which is still Proposed.
 
 - [ ] **M6.4 — exec: DML and constraints**
   - Depends: M6.3
@@ -596,6 +623,10 @@ tested by SQL logic tests.
     as a doc test; interrupt cancels a long scan with `57014`;
     `Database: Send + Sync`, `Connection: Send` (compile-time assertions).
   - Verify: `cargo test -p hardshelldb`
+  - Note (from M0.2): a review questioned `22004` for a `NULL` read into a
+    non-`Option` type: the SQL standard's `null_value_no_indicator_parameter`
+    names exactly that case (a `NULL` fetched into a host variable with no
+    indicator). Decide with the user before M6.5 fixes it in the API.
 
 - [ ] **M6.6 — facade: SQL logic test runner**
   - Depends: M6.5

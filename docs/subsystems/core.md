@@ -1,17 +1,17 @@
 # Subsystem: `hardshell-core`
 
 Foundation types used by every other crate. No `unsafe`, no OS calls beyond
-`std` time, no dependencies (layer 0). Nothing is built yet; M0 builds the
-modules the guardrails need (errors, `crc32c`, `varint`, `rng`, `testing`,
-`cli`, `log`), and later milestones add to it only when two or more crates
-need the same thing.
+`std` time, no dependencies (layer 0). M0.2 built the errors (`sqlstate`,
+`error`); the rest of M0 builds the other modules the guardrails need
+(`crc32c`, `varint`, `rng`, `testing`, `cli`, `log`), and later milestones
+add to it only when two or more crates need the same thing.
 
 ## Contents
 
 | Module | Provides |
 | :- | :- |
-| `sqlstate` | `SqlState` (five ASCII bytes), named constants for every code the engine raises, `class()`, `Display` as the five-character code |
-| `error` | `CoreError` and the `ErrorContext` helper for adding "while doing X" context to errors |
+| `sqlstate` | `SqlState` (five ASCII bytes), one named constant per row of the table below plus `SqlState::ALL`, `class()`, `as_str()`, `Display` as the five-character code |
+| `error` | `SqlStateError` (the `sqlstate()` every error type implements), `ContextError` and the `ErrorContext` helper for adding "while doing X" notes without changing the SQLSTATE; `CoreError` arrives with core's first decoder (M0.3) |
 | `bytes` | `Reader` (bounds-checked little-endian reads with an offset, every read returns `Result`) and `Writer` (appends to a reused `Vec<u8>`) for every decoder and encoder in the workspace |
 | `crc32c` | CRC-32C (Castagnoli, reflected polynomial `0x82F63B78`), table-driven slicing-by-8; `crc32c(&[u8])` and `Crc32c::update` for chained checksums (ADR-0009) |
 | `varint` | Unsigned LEB128 for `u64`, zigzag for `i64`; decode returns the value and the bytes used, and rejects overlong encodings |
@@ -27,16 +27,32 @@ need the same thing.
 
 ```rust
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub struct SqlState([u8; 5]);              // always ASCII digits or upper-case letters
+pub struct SqlState([u8; 5]);              // private field: only the constants below exist
 
 impl SqlState {
-    pub const SYNTAX_ERROR: SqlState = SqlState(*b"42601");
-    pub const FEATURE_NOT_SUPPORTED: SqlState = SqlState(*b"0A000");
-    pub const DATA_CORRUPTED: SqlState = SqlState(*b"XX001");
-    pub const IO_ERROR: SqlState = SqlState(*b"58030");
-    // ... one constant per code in the table below
-    pub fn class(self) -> [u8; 2];
-    pub fn as_str(&self) -> &str;
+    // One constant per row of the table below, named after its PostgreSQL
+    // condition name; an invalid code fails the build.
+    pub const SYNTAX_ERROR: SqlState;      // 42601
+    pub const DATA_CORRUPTED: SqlState;    // XX001
+    // ...
+    pub const ALL: &'static [SqlState];    // every constant, in table order
+    pub const fn class(self) -> [u8; 2];   // the first two characters
+    pub fn as_str(&self) -> &str;          // "42601"; Display prints the same, Debug SqlState("42601")
+}
+
+pub trait SqlStateError: std::error::Error {   // every workspace error type implements it
+    fn sqlstate(&self) -> SqlState;
+}
+
+pub struct ContextError { /* the boxed error and its note */ }  // Display: "{error}; {note}"
+
+impl ContextError {
+    pub fn error(&self) -> &(dyn SqlStateError + Send + Sync + 'static);  // for a downcast
+}
+
+pub trait ErrorContext<T> {    // for Result<T, E> where E: SqlStateError + Send + Sync + 'static
+    fn with_context<N: Into<Cow<'static, str>>, F: FnOnce() -> N>(self, note: F)
+        -> Result<T, ContextError>;
 }
 
 pub struct Reader<'a> { buf: &'a [u8], pos: usize }
@@ -66,12 +82,12 @@ code is a real PostgreSQL code with PostgreSQL's meaning (ADR-0004).
 | `22004` | `null_value_not_allowed` | `NULL` read into a non-`Option` Rust type |
 | `22007` / `22008` | `invalid_datetime_format` / `datetime_field_overflow` | Bad or out-of-range date/time input |
 | `22012` | `division_by_zero` | Integer, float or `NUMERIC` division or modulo by zero |
-| `2201W` / `2201X` | invalid row count in `LIMIT` / `OFFSET` | Negative `LIMIT` or `OFFSET` |
+| `2201W` / `2201X` | `invalid_row_count_in_limit_clause` / `invalid_row_count_in_result_offset_clause` | Negative `LIMIT` or `OFFSET` |
 | `22021` | `character_not_in_repertoire` | Invalid UTF-8 (ADR-0014) |
 | `22023` | `invalid_parameter_value` | Bad type modifier, page size or setting value |
 | `22P02` | `invalid_text_representation` | Bad input for a non-date/time type |
 | `22P04` | `bad_copy_file_format` | Malformed CSV for `\copy` / `copy_in` |
-| `23502` / `23503` / `23505` / `23514` | not-null / foreign-key / unique / check violation | Constraint checks |
+| `23502` / `23503` / `23505` / `23514` | `not_null_violation` / `foreign_key_violation` / `unique_violation` / `check_violation` | Constraint checks |
 | `25P02` | `in_failed_sql_transaction` | Statement after an error inside `BEGIN` |
 | `25P03` | `idle_in_transaction_session_timeout` | Server session idle in a transaction too long (M12) |
 | `2BP01` | `dependent_objects_still_exist` | `DROP` without `CASCADE` |
@@ -79,11 +95,12 @@ code is a real PostgreSQL code with PostgreSQL's meaning (ADR-0004).
 | `3D000` / `3F000` | `invalid_catalog_name` / `invalid_schema_name` | Wrong database name at server startup; schema other than `public` |
 | `40001` | `serialization_failure` | Writing on a stale snapshot (ADR-0008) |
 | `42601` | `syntax_error` | Parser |
-| `42P01` / `42703` / `42883` / `42704` | undefined table / column / function / object | Binder; unknown setting |
-| `42701` / `42710` / `42P07` | duplicate column / object / table | DDL |
-| `42702` / `42725` | ambiguous column / function | Binder |
+| `42P01` / `42703` / `42883` / `42704` | `undefined_table` / `undefined_column` / `undefined_function` / `undefined_object` | Binder; unknown setting |
+| `42701` / `42710` / `42P07` | `duplicate_column` / `duplicate_object` / `duplicate_table` | DDL |
+| `42702` / `42725` | `ambiguous_column` / `ambiguous_function` | Binder |
 | `42803` | `grouping_error` | Aggregates in `WHERE`, ungrouped columns |
 | `42804` | `datatype_mismatch` | Binder, `Row::get` |
+| `428C9` | `generated_always` | Inserting into a `GENERATED ALWAYS` identity column without `OVERRIDING SYSTEM VALUE` (M7.8) |
 | `42939` | `reserved_name` | Names starting with `hs_` |
 | `42P10` | `invalid_column_reference` | Out-of-range `ORDER BY` / `GROUP BY` ordinal |
 | `42P18` | `indeterminate_datatype` | Parameter whose type nothing determines |
@@ -102,7 +119,49 @@ code is a real PostgreSQL code with PostgreSQL's meaning (ADR-0004).
 | `XX000` | `internal_error` | A broken invariant that is not corruption (a bug) |
 | `XX001` / `XX002` | `data_corrupted` / `index_corrupted` | Checksum or structure failure |
 
-A spec that needs a new code adds it to this table in the same change.
+A spec that needs a new code adds it to this table, with its PostgreSQL
+condition name, and a constant to `sqlstates!` in
+`crates/core/src/sqlstate.rs`, in the same change;
+`crates/core/tests/sqlstate_docs.rs` fails otherwise.
+
+## Error conventions
+
+- **One error type per crate.** It implements `Debug`, `Display`,
+  `std::error::Error` and `hardshell_core::error::SqlStateError`, and is
+  `Send + Sync + 'static`. An enum's `sqlstate()` is an exhaustive `match`
+  with no `_ =>` arm; a struct that stores its code (`ParseError`) returns
+  it. Every code is a `SqlState` constant.
+- **`Display` is the whole message,** in PostgreSQL's style: one line, a
+  lower-case first word, no final period, names in double quotes. It
+  includes a foreign cause's text (`could not fsync file "app.hsdb-wal":
+  Input/output error`), and `source()` never returns an error whose text
+  `Display` already printed. The facade's `Error` follows the same rule.
+- **Facts are fields; notes say what was in progress.** A corrupt page's
+  number, `OsError::Io`'s operation and path, and `ParseError`'s span are
+  typed fields. "while replaying the WAL" is a note added with
+  `ErrorContext::with_context`. Notes follow the message after `"; "`,
+  innermost first, and never change the SQLSTATE.
+- **A crate that receives notes** adds a `Context(ContextError)` variant and
+  `From<ContextError>`. That variant, like any variant that wraps another
+  error, forwards `Display`, `source()` and `sqlstate()`.
+  `ContextError::error()` reaches the wrapped error for a downcast.
+- **Reclassifying is a variant, never a note.** A truncated read is `XX001`
+  in a page and `08P01` in a wire message: each crate maps the inner error
+  into its own variant with its own code.
+- **Notes are bounded by code, not by input.** No note per level of a
+  recursion or per item of a loop over input. A dynamic note is built in the
+  closure, so the success path never formats.
+- **No note on a `ParseError` the facade reports,** since its span becomes
+  `position`. A `ParseError` from re-parsing stored text (a view body) may
+  take one.
+- **`XX000` is for bugs only.** Malformed input gets its input's code
+  (`42601`, `22P02`, `08P01`, `XX001`), never a panic.
+- **Codes in docs.** Write a SQLSTATE as its own code span. The docs test
+  reads a five-character word with a digit as a SQLSTATE when it is a whole
+  code span, or anywhere when it starts with a PostgreSQL class, and such a
+  word needs a constant. Write other numbers like that with a separator
+  (16,384) or list them in the test's `NOT_SQLSTATES`. To discuss a
+  PostgreSQL code the engine does not raise, use its condition name.
 
 ## Invariants
 
@@ -116,6 +175,9 @@ A spec that needs a new code adds it to this table in the same change.
   on per-process random state. Code whose output order matters (catalog
   listings, `EXPLAIN`, dumps) sorts explicitly anyway.
 - `log` never allocates when no sink is installed, and never prints.
+- Every `SqlState` is one of the named constants; an invalid code fails the
+  build.
+- A note never changes an error's SQLSTATE.
 
 ## Limits
 
@@ -125,6 +187,17 @@ either it returns an error the facade reports as `22P04`.
 
 ## Tests
 
+- `sqlstate`: every constant is five characters from `[0-9A-Z]` whose first
+  two are its class; codes are unique; the validator rejects anything else;
+  the `Display` and `Debug` forms; constants as `match` patterns.
+- `tests/sqlstate_docs.rs`: every SQLSTATE in `docs/` has a constant; the
+  table above lists exactly the constants, in `SqlState::ALL`'s order, each
+  name matching its constant and the constant's doc comment; look-alike
+  cases pin the scanner's rule.
+- `error`: a note keeps the SQLSTATE; notes read innermost first; `source()`
+  is the wrapped error's; the note's closure runs only on `Err`; the wrapped
+  error is reachable by downcast. `tests/error_context.rs` runs the
+  conventions across crate-like layers, from outside the crate.
 - `crc32c` against published test vectors (RFC 3720 appendix B.4) and a
   bit-at-a-time reference implementation in the test module.
 - Property tests: `varint` round-trips every `u64`/`i64` sample and rejects

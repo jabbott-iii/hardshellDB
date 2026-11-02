@@ -17,3 +17,6 @@
 //! SQLSTATE codes and errors, CRC-32C, varints, hashing, `Pcg32`, logging,
 //! the property-test harness, the CLI argument parser and the CSV codec.
 //! It depends on no other crate. Design: `docs/subsystems/core.md`.
+
+pub mod error;
+pub mod sqlstate;

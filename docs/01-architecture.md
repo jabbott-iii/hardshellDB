@@ -273,8 +273,10 @@ dependency.
 
 ## Errors and logging
 
-- Each crate defines its own error enum implementing `Display` and
-  `std::error::Error`. The facade's `hardshelldb::Error` wraps them and
+- Each crate defines its own error enum implementing `Display`,
+  `std::error::Error` and `hardshell_core::error::SqlStateError`
+  (conventions: `docs/subsystems/core.md`, "Error conventions"). The
+  facade's `hardshelldb::Error` wraps them and
   exposes `sqlstate() -> SqlState`, `message()`, and optional `detail()`,
   `hint()` and `position()` (a 1-based character position in the
   statement, as PostgreSQL counts it), mirroring PostgreSQL's
