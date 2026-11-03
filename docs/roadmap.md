@@ -126,7 +126,7 @@ enforced by tooling from day one.
     `Pcg32::range` and `shuffle` match the reference exactly; `next_u64`
     takes its first output as the low half.
 
-- [ ] **M0.4 — core: property-test harness and logging**
+- [x] **M0.4 — core: property-test harness and logging**
   - Depends: M0.3
   - Do: `testing::check` and `testing::check_sized` (seeded from
     `HARDSHELL_SEED`, fixed in CI, failure prints seed and case);
@@ -139,6 +139,20 @@ enforced by tooling from day one.
     reported seed and case replay that case alone, and lets `check_sized`
     rebuild it to shrink. M0.3's property tests are plain seeded loops;
     moving them onto `check` is optional.
+  - Note: ADR-0017 accepted (2026-11-03): the no-sink test counts
+    allocations with a counting allocator in `crates/core/tests/log_alloc.rs`,
+    the one `unsafe` in the workspace, under an item-level allow. M0.5's
+    `unsafe-audit` allows exactly that shape.
+  - Note: case `i` of the property `name` draws from
+    `Pcg32::new(seed ^ fnv1a64(name), i)`, so properties sharing a seed get
+    different inputs. A panic in the generator, the property or the input's
+    drop is caught and reported with the seed. `check_sized` shrinks by
+    scanning sizes upward on the failing case's stream. An empty
+    `HARDSHELL_SEED` means unset; `DEFAULT_SEED` is 42; 0 cases panic.
+  - Note: the sink is a `OnceLock`, set once (`set_sink` returns a refused
+    sink as `Err`), so reading it takes no lock; there is no level
+    threshold (core.md, open questions). `assert_approx!` is not built: no
+    test needs it yet. M0.3's property tests stay plain loops.
 
 - [ ] **M0.5 — xtask: deps, layers, unsafe-audit, headers, ci**
   - Depends: M0.1
@@ -150,11 +164,13 @@ enforced by tooling from day one.
     - `layers`: the dependency matrix as a `const` table, compared with
       every member's normal, dev and build dependencies; a unit test
       compares the table with `docs/01-architecture.md`.
-    - `unsafe-audit`: no `unsafe` outside `hardshell-os`; no
-      `allow(unsafe_code)` anywhere at M0; every `unsafe` preceded by
-      `// SAFETY:`; no `std::fs` outside `hardshell-os`, `xtask`, the apps
-      and tests (all engine file access goes through the VFS); prints
-      per-crate counts.
+    - `unsafe-audit`: no `unsafe` outside `hardshell-os` and ADR-0017's
+      counting allocators (an `unsafe impl GlobalAlloc` with an item-level
+      `allow(unsafe_code)` in a crate's `tests/`, today
+      `crates/core/tests/log_alloc.rs`); no `allow(unsafe_code)` anywhere
+      else at M0; every `unsafe` preceded by `// SAFETY:`; no `std::fs`
+      outside `hardshell-os`, `xtask`, the apps and tests (all engine file
+      access goes through the VFS); prints per-crate counts.
     - `headers`: every source file starts with the Apache-2.0 header from
       `LICENSE`'s appendix (ADR-0015); add it to every existing file.
     - `release-no-testing`: the `testing` feature is not in the non-dev
@@ -186,6 +202,10 @@ enforced by tooling from day one.
     re-encodes to exactly the bytes it used. `Pcg32::range` panics on a
     bound of 0: a mutator picking a position in an input that may be empty
     checks first.
+  - Note (from M0.4): `testing` parses `HARDSHELL_SEED` (decimal, or `0x`
+    and hex digits; empty means unset) in a private `seed_from`. Make it
+    public and share it rather than parse the variable another way; M2.6's
+    `cargo xtask crash` likewise.
 
 - [ ] **M0.7 — bench: harness**
   - Depends: M0.4
@@ -218,7 +238,7 @@ enforced by tooling from day one.
 
 **Exit criteria (M0):** a PR to `main` runs every check on three OSes, and
 a deliberately added third-party crate, forbidden layer edge, or `unsafe`
-block fails CI.
+block (outside ADR-0017's test counting allocators) fails CI.
 
 ---
 
@@ -662,6 +682,10 @@ tested by SQL logic tests.
     non-`Option` type: the SQL standard's `null_value_no_indicator_parameter`
     names exactly that case (a `NULL` fetched into a host variable with no
     indicator). Decide with the user before M6.5 fixes it in the API.
+  - Note (from M0.4): `hardshell_core::log::set_sink` fills a set-once slot
+    and returns a refused sink as `Err`, so `set_log_sink` must report a
+    second call somehow (api.md). Decide there whether the sink carries a
+    maximum level (core.md, open questions).
 
 - [ ] **M6.6 — facade: SQL logic test runner**
   - Depends: M6.5

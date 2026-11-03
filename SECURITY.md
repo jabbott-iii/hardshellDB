@@ -86,7 +86,8 @@ A full threat model is written in roadmap task M11.7.
 
 - No third-party crates, so no transitive supply chain
   (`docs/02-dependency-policy.md`).
-- No `unsafe` code (ADR-0013).
+- No `unsafe` code (ADR-0013), except a counting allocator in some test
+  binaries, which never ships (ADR-0017).
 - Every page and WAL frame is checksummed (ADR-0009).
 - Every parser and decoder is fuzzed in CI, and crash campaigns run under a
   fault-injecting file system (`docs/04-quality.md`).

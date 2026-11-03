@@ -58,7 +58,9 @@ code, commands and checks that do not exist yet: check before assuming.
    matrix to make code compile; ask. `cargo xtask layers` enforces this.
 3. **No `unsafe`.** `unsafe_code = "deny"` everywhere. Only `hardshell-os`
    may ever allow it, and only after an accepted ADR names the OS call
-   `std` lacks (ADR-0013). Every `unsafe` block then carries `// SAFETY:`.
+   `std` lacks (ADR-0013). The one other exception is a counting allocator
+   in a crate's `tests/`, with an item-level allow (ADR-0017). Every
+   `unsafe` block then carries `// SAFETY:`.
 4. **Durability is not negotiable.**
    - Never acknowledge a commit before the sync that makes it durable.
    - The main database file changes only by checkpoint, with data already
@@ -114,7 +116,7 @@ code, commands and checks that do not exist yet: check before assuming.
 | `cargo xtask ci` | fmt check, clippy (`-D warnings`), tests (with SLT), `deps`, `layers`, `unsafe-audit`, `headers`, `release-no-testing`, `workflows`: the full PR gate | M0.5 |
 | `cargo xtask deps` | Fails if `Cargo.lock` has a non-workspace package not approved in the policy | M0.5 |
 | `cargo xtask layers` | Fails if a crate depends on a crate the matrix forbids | M0.5 |
-| `cargo xtask unsafe-audit` | Fails on `unsafe` outside `hardshell-os`, or without `// SAFETY:` | M0.5 |
+| `cargo xtask unsafe-audit` | Fails on `unsafe` outside `hardshell-os` and ADR-0017's test counting allocators, or without `// SAFETY:` | M0.5 |
 | `cargo xtask headers` | Fails if a source file lacks the Apache-2.0 header (ADR-0015) | M0.5 |
 | `cargo xtask fuzz-smoke [--secs N] [--target T]` | Mutation fuzzer over every parser, or one | M0.6 |
 | `cargo xtask bench [filter]` | Benchmarks in release mode, compared with `bench/baseline.txt` | M0.7 |

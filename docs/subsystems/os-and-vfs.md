@@ -8,6 +8,7 @@ The per-OS rules this crate implements are in `docs/03-platforms.md`.
 
 `unsafe` is denied here as everywhere; this is the one crate that may opt
 in, and only through a new ADR naming the OS call `std` lacks (ADR-0013).
+(Outside it, only a test binary's counting allocator may, ADR-0017.)
 At M1 everything is plain `std`: positional I/O (`FileExt`), `sync_all` /
 `sync_data`, and `File::lock` / `try_lock` (stable since Rust 1.89).
 

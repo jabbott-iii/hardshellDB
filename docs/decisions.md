@@ -354,7 +354,7 @@ change or reject each before the roadmap task that depends on it starts.
 
 ## ADR-0013 — `unsafe` is denied everywhere; only `hardshell-os` may opt in, and only by a new ADR
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by ADR-0017 (a test binary's counting allocator)
 - **Date:** 2026-11-01
 - **Context:** Nadir allows `unsafe` in three FFI crates because it binds
   windowing and GPU APIs. A database needs much less: `std` already offers
@@ -434,3 +434,44 @@ change or reject each before the roadmap task that depends on it starts.
 - **Alternatives considered:** an own protocol. Rejected: no existing
   clients.
 - **Revisit when:** M12 starts, or a user needs remote access sooner.
+
+## ADR-0017 — A test binary may hold a counting allocator, the one `unsafe` outside `hardshell-os` (amends ADR-0013)
+
+- **Status:** Accepted
+- **Date:** 2026-11-03
+- **Context:** M0.4 must show that logging with no sink allocates nothing,
+  and the executor's allocation tests (`docs/subsystems/executor.md`) must
+  show that a steady-state scan allocates nothing per row. Counting heap
+  allocations needs a `#[global_allocator]`, and `GlobalAlloc` is an
+  `unsafe` trait: `unsafe impl GlobalAlloc` and its `unsafe fn` methods
+  fail `unsafe_code = "deny"` (checked with Rust 1.99.0). ADR-0013 allows
+  no `unsafe` at M0, and none outside `hardshell-os` ever. Without `unsafe`,
+  a test can only argue that nothing allocates (no argument is evaluated,
+  nothing is formatted), not measure it.
+- **Decision:**
+  - An integration-test file (a crate's `tests/*.rs`, which builds its own
+    test binary) may define one `#[global_allocator]` that counts
+    allocations and forwards every call unchanged to `std::alloc::System`.
+  - The `allow` is on that item only: `#[allow(unsafe_code)] // ADR-0017`
+    on the `unsafe impl GlobalAlloc`, never `#![allow(unsafe_code)]` on the
+    file. The impl carries `// SAFETY:`, and so does each `unsafe` block in
+    it, one operation per block (the workspace's clippy lints).
+  - Counting never allocates, panics or unwinds: an atomic, or a
+    `const`-initialized thread-local `Cell`.
+  - Nothing else in the file is `unsafe`. Never in a crate's `src/`
+    (library and binary code and their unit tests), so never in shipped
+    code.
+  - `cargo xtask unsafe-audit` (M0.5) allows exactly this shape and still
+    fails on any other `unsafe` outside `hardshell-os`.
+- **Consequences:** allocation claims are measured, not argued. Each test
+  file that counts holds its own copy of the forwarder (about 40 lines); the
+  first is `crates/core/tests/log_alloc.rs`. The audit recognises a second
+  allowed shape. The rest of ADR-0013 stands.
+- **Alternatives considered:** the argued check above (weaker: it shows
+  what the code does not do, not what the allocator saw); one shared
+  counting allocator in a library crate (puts `unsafe` in library code, and
+  `core`'s tests cannot depend on any other crate); the allocator in
+  `hardshell-os` behind `testing` (the dependency matrix forbids `core`
+  depending on `os`, dev-dependencies included).
+- **Revisit when:** a test needs any other `unsafe`, or `std` gains a safe
+  way to count allocations.

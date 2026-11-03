@@ -21,6 +21,8 @@
 pub mod crc32c;
 pub mod error;
 pub mod hash;
+pub mod log;
 pub mod rng;
 pub mod sqlstate;
+pub mod testing;
 pub mod varint;

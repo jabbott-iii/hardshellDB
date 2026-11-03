@@ -36,7 +36,8 @@ These are summarized from `AGENTS.md`, which is authoritative.
 - **One-way layering.** A crate depends only on the crates its row in the
   dependency matrix allows ([`docs/01-architecture.md`](docs/01-architecture.md)).
 - **No `unsafe`.** Only `hardshell-os` may ever contain it, and only after
-  an accepted ADR.
+  an accepted ADR. The one exception is a counting allocator in a crate's
+  `tests/` (ADR-0017).
 - **Durability first.** The main file changes only by checkpoint; commits
   are acknowledged only after their sync; a failed sync is never retried.
   Storage changes run the crash campaign.

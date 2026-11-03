@@ -123,7 +123,8 @@ Workspace lints (`Cargo.toml`); every member uses `[lints] workspace = true`:
 
 ```toml
 [workspace.lints.rust]
-unsafe_code = "deny"              # only hardshell-os may override, and only by ADR (ADR-0013)
+unsafe_code = "deny"              # only hardshell-os may override, and only by ADR (ADR-0013);
+                                  # a test counting allocator allows it on its impl (ADR-0017)
 unsafe_op_in_unsafe_fn = "deny"
 missing_docs = "warn"             # -D in CI
 unreachable_pub = "warn"
@@ -140,8 +141,10 @@ exit = "deny"
 ```
 
 `unsafe_code` is `deny` rather than `forbid` so that `hardshell-os` can add
-`#![allow(unsafe_code)]` at its root if an ADR approves it. `cargo xtask
-unsafe-audit` checks that the attribute appears nowhere else.
+`#![allow(unsafe_code)]` at its root if an ADR approves it, and so that a
+test binary's counting allocator can allow it on its `unsafe impl
+GlobalAlloc` alone (ADR-0017). `cargo xtask unsafe-audit` checks that the
+attribute appears nowhere else.
 
 ## The life of a statement
 

@@ -6,7 +6,8 @@ paths:
 # Rules for the OS layer and `unsafe`
 
 `hardshell-os` is the only crate that may ever contain `unsafe`, and today
-it contains none (ADR-0013).
+it contains none (ADR-0013). The one exception outside it is a counting
+allocator in a crate's `tests/` (ADR-0017).
 
 - **`std` first.** Positional I/O, `sync_data`/`sync_all`, `set_len`,
   `File::lock`/`try_lock`/`lock_shared`, directory opening and temp

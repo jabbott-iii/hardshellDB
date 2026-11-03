@@ -38,7 +38,8 @@ hardshell-exec = { path = "crates/exec" }
 hardshelldb = { path = "crates/hardshelldb" }
 
 [workspace.lints.rust]
-unsafe_code = "deny"              # only hardshell-os may override, and only by ADR (ADR-0013)
+unsafe_code = "deny"              # only hardshell-os may override, and only by ADR (ADR-0013);
+                                  # a test counting allocator allows it on its impl (ADR-0017)
 unsafe_op_in_unsafe_fn = "deny"
 missing_docs = "warn"             # -D in CI
 unreachable_pub = "warn"

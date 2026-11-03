@@ -104,7 +104,9 @@ impl Error {
   `position`, counted in characters from 1, as PostgreSQL's
   `ErrorResponse` does.
 - **Logging:** `set_log_sink(Box<dyn Fn(&LogRecord) + Send + Sync>)`
-  installs one process-wide sink; the library never prints.
+  installs one process-wide sink, once: it fills the slot in
+  `hardshell_core::log`, which is never replaced, so a second call fails
+  (M6.5 picks how it reports that). The library never prints.
 - **No panics across the API:** every failure is an `Error`. A panic inside
   the engine is a bug; it is not caught, but the poisoned-handle rule
   (ADR-0009) and the WAL keep the file safe.

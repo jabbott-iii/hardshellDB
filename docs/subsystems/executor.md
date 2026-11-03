@@ -136,7 +136,7 @@ Aggregates accept `DISTINCT` and `FILTER (WHERE ...)`.
 - Spill tests (M9): the same queries with `work_mem` at its minimum give the
   same results as with plenty.
 - Allocation tests: a steady-state scan and a hash join allocate nothing per
-  row after warm-up (counting allocator in the test binary).
+  row after warm-up (counting allocator in the test binary, ADR-0017).
 - Interrupt tests: a long query is cancelled within 50 ms of the interrupt.
 
 ## Open questions

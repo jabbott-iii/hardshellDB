@@ -3,8 +3,8 @@
 Because we write our own storage engine, parser and types, testing has to
 do the job that a mature, battle-tested engine's history would otherwise
 do. Every harness below is our own code (dependency policy items 21–24).
-Nothing here is built yet; each harness names the roadmap task that builds
-it.
+The property-test harness is built (M0.4); each other harness names the
+roadmap task that builds it.
 
 ## Test layers
 
@@ -27,8 +27,11 @@ it.
 ### Property testing — `hardshell_core::testing` (M0.4)
 
 ```rust
-/// Runs `property` on `cases` inputs generated from a seeded `Pcg32`. On
-/// failure, panics with the seed and case index so it can be replayed.
+/// Runs `property` on `cases` inputs generated from seeded `Pcg32`s. On
+/// the first failure (an `Err`, or a panic in the generator, the property
+/// or the input's drop), panics with a report: the case, the seed that
+/// replays it, the input's `Debug` form (built only for a failure) and the
+/// error.
 pub fn check<T: std::fmt::Debug>(
     name: &str,
     cases: u32,
@@ -36,8 +39,9 @@ pub fn check<T: std::fmt::Debug>(
     property: impl Fn(&T) -> Result<(), String>,
 );
 
-/// The same, with a size from 0 to 100 that grows over the run; on failure
-/// it retries smaller sizes and reports the smallest that still fails.
+/// The same, with a size from 0 to 100 that grows evenly over the run; on
+/// failure it rebuilds the failing case at each smaller size and reports
+/// the smallest that still fails.
 pub fn check_sized<T: std::fmt::Debug>(
     name: &str,
     cases: u32,
@@ -46,8 +50,26 @@ pub fn check_sized<T: std::fmt::Debug>(
 );
 ```
 
-- The seed comes from `HARDSHELL_SEED`, or a fixed value, so CI runs are
-  reproducible. The nightly job uses random seeds and prints them.
+- The seed comes from `HARDSHELL_SEED` (decimal, or `0x` and hex digits;
+  anything else fails the test), or `DEFAULT_SEED` when it is unset or
+  empty, so CI runs are reproducible. The nightly job uses random seeds and
+  prints them.
+- Case `i` of the property `name` draws from
+  `Pcg32::new(seed ^ fnv1a64(name), i)`: cases are independent, properties
+  sharing a seed get different inputs, and a reported seed replays the run
+  (`HARDSHELL_SEED=<seed> cargo test <test>`).
+- A report looks like this (`check_sized` adds the size, and the size it
+  shrank from):
+
+  ```
+  property "one draw in eight fails" failed at case 4 of 1000; HARDSHELL_SEED=12345 replays it
+  input: 2089109368
+  error: 2089109368 is a multiple of 8
+  ```
+
+- The panic points at the `check` call (`#[track_caller]`). Generators and
+  properties should be pure: shrinking calls them again, even after a
+  panic.
 
 ### Model-based tests
 
@@ -158,7 +180,7 @@ pub fn check_sized<T: std::fmt::Debug>(
 | `test` | `cargo test --workspace --all-features` (includes the SLT runner) |
 | `deps` | `cargo metadata --format-version 1`; every package with a non-null `source` must appear in `xtask/deps-allowlist.txt` with its exact version; a path package outside the workspace fails |
 | `layers` | Same metadata; each crate's normal, dev and build dependencies must be within its row of the dependency matrix; a crate with no row fails. The matrix is a `const` table in `xtask`; a unit test compares it with `docs/01-architecture.md` |
-| `unsafe-audit` | Scans `*.rs`, ignoring comments and strings: no `unsafe` outside `hardshell-os`; `allow(unsafe_code)` only at that crate's root and only if an ADR allows it; every `unsafe` block or impl preceded by `// SAFETY:` within 3 lines; no `std::fs` outside `hardshell-os`, `xtask`, the apps and tests; prints per-crate counts |
+| `unsafe-audit` | Scans `*.rs`, ignoring comments and strings: no `unsafe` outside `hardshell-os`, except in the `unsafe impl GlobalAlloc` of a counting allocator in a crate's `tests/` (ADR-0017); `allow(unsafe_code)` only at that crate's root and only if an ADR allows it, or on that impl; every `unsafe` block or impl preceded by `// SAFETY:` within 3 lines; no `std::fs` outside `hardshell-os`, `xtask`, the apps and tests; prints per-crate counts |
 | `headers` | Every source file starts with the Apache-2.0 header of `LICENSE`'s appendix in its comment syntax (ADR-0015) |
 | `release-no-testing` | The `testing` feature is absent from the non-dev dependency trees of `hardshell-cli` and `hardshell-server` |
 | `workflows` (from M0.8) | Every GitHub Action pinned by full commit SHA with a version comment; top-level permissions `contents: read` or `{}`; `persist-credentials: false` on checkout; no `pull_request_target` |

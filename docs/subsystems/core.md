@@ -1,11 +1,13 @@
 # Subsystem: `hardshell-core`
 
-Foundation types used by every other crate. No `unsafe`, no OS calls beyond
-`std` time, no dependencies (layer 0). M0.2 built the errors (`sqlstate`,
-`error`), and M0.3 the checksums, varints, hashing and random numbers
-(`crc32c`, `varint`, `hash`, `rng`); the rest of M0 builds the other
-modules the guardrails need (`testing`, `cli`, `log`), and later milestones
-add to it only when two or more crates need the same thing.
+Foundation types used by every other crate. No `unsafe` (its one test
+binary with a counting allocator aside, ADR-0017), no OS calls beyond
+`std` time and `testing`'s read of `HARDSHELL_SEED`, no dependencies
+(layer 0). M0.2 built the errors (`sqlstate`, `error`), M0.3 the checksums,
+varints, hashing and random numbers (`crc32c`, `varint`, `hash`, `rng`),
+and M0.4 the property-test harness and logging (`testing`, `log`). M8.1
+adds the argument parser and CSV codec (`cli`, `csv`); otherwise later
+milestones add to it only when two or more crates need the same thing.
 
 ## Contents
 
@@ -18,8 +20,8 @@ add to it only when two or more crates need the same thing.
 | `varint` | Unsigned LEB128 for `u64`: `encode_u64` appends to a `Vec<u8>`; `decode_u64` returns the value and the bytes used, reads at most 10 bytes, and accepts only the shortest encoding (truncated, overlong and over-64-bit forms are errors) |
 | `hash` | `fnv1a64` (fixed by its definition, so its values may be stored or printed); `FastHasher` (a folded multiply per 64-bit word, then a finishing fold) with `FastHashMap` / `FastHashSet` aliases: deterministic, non-cryptographic, values never stored. Neither resists chosen keys: use `RandomState` where a remote party picks them |
 | `rng` | `Pcg32`: `new(seed, stream)` as the reference's `pcg32_srandom_r`, `next_u32`, `next_u64` (low half first), `range(bound)` (unbiased; the reference's `pcg32_boundedrand_r` up to `u32::MAX`; panics on 0), `shuffle` (as the reference demo deals cards), `fill_bytes`; not for secrets |
-| `log` | Macros `error!`, `warn!`, `info!`, `debug!`, `trace!` with a module target; one global sink slot set by the facade's `set_log_sink`; with no sink each macro costs one atomic load |
-| `testing` | Property-test harness `check` and `check_sized`, `assert_approx!` (see `docs/04-quality.md`) |
+| `log` | Macros `error!`, `warn!`, `info!`, `debug!`, `trace!` (`format!` arguments, the calling module's `module_path!()` as the target), reached as `hardshell_core::log::warn!`; `Level`, `LogRecord` (level, target, unformatted `fmt::Arguments`), `Sink`; one process-wide sink slot, set once by `set_sink` (the facade's `set_log_sink`): a second call gets its sink back as `Err`. With no sink a macro costs one atomic load and evaluates none of its arguments |
+| `testing` | Property-test harness `check` and `check_sized` (see `docs/04-quality.md`), `DEFAULT_SEED`, `MAX_SIZE`; the seed from `HARDSHELL_SEED`. `assert_approx!` is not built yet: it arrives with the first float test that needs it |
 | `cli` | Minimal argument parser for `xtask`, `hardshell` and `hardshelld` (`--flag`, `--key value`, `-k value`, positionals, `--`) |
 | `csv` | RFC 4180 reader and writer over bytes: configurable delimiter, quote and escape, header row, `\N`-style NULL marker; no types (the facade converts fields with `hardshell-types`) |
 | `civil` | UTC civil date and time from `SystemTime` (days-to-civil), for log lines and file names |
@@ -85,6 +87,24 @@ impl Pcg32 {
     pub fn shuffle<T>(&mut self, items: &mut [T]);
     pub fn fill_bytes(&mut self, bytes: &mut [u8]);
 }
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Level { Error, Warn, Info, Debug, Trace }   // most to least severe; as_str() and Display: "warn"
+
+#[derive(Clone, Copy, Debug)]
+pub struct LogRecord<'a> { level: Level, target: &'static str, message: fmt::Arguments<'a> }
+// level(), target() (`module_path!()` of the call), message() (unformatted)
+
+pub type Sink = Box<dyn Fn(&LogRecord<'_>) + Send + Sync>;  // runs on the logging thread
+pub fn set_sink(sink: Sink) -> Result<(), Sink>;          // the first call wins
+// error!, warn!, info!, debug!, trace!: `format!` arguments, evaluated only with a sink
+
+pub const DEFAULT_SEED: u64;               // 42: the seed when HARDSHELL_SEED is unset or empty
+pub const MAX_SIZE: u32;                   // 100
+pub fn check<T: Debug>(name: &str, cases: u32,
+    generate: impl Fn(&mut Pcg32) -> T, property: impl Fn(&T) -> Result<(), String>);
+pub fn check_sized<T: Debug>(name: &str, cases: u32,
+    generate: impl Fn(&mut Pcg32, u32) -> T, property: impl Fn(&T) -> Result<(), String>);
 
 // Planned, not built (see the `bytes` row).
 pub struct Reader<'a> { buf: &'a [u8], pos: usize }
@@ -200,8 +220,10 @@ condition name, and a constant to `sqlstates!` in
 - Nothing in `core` panics on input. `varint::decode_u64` reads at most 10
   bytes and never past the varint, and accepts only the shortest encoding,
   so a decoded value re-encodes to exactly the bytes it used. `Reader`,
-  when it lands, never indexes past its buffer. The only documented panic
-  is a caller's bug, never input: `Pcg32::range(0)`.
+  when it lands, never indexes past its buffer. The documented panics are
+  a caller's bug or a test failing, never engine input: `Pcg32::range(0)`,
+  and `testing::check` and `check_sized`, which fail a test by panicking
+  (a failing case, no cases, or a malformed `HARDSHELL_SEED`).
 - `crc32c(b"123456789") == 0xE306_9283` (the standard check value), and
   `crc32c_append(crc32c(a), b)` is the CRC-32C of `a` then `b`, so a chain
   over split input equals `crc32c` over the whole.
@@ -214,7 +236,17 @@ condition name, and a constant to `sqlstates!` in
   differ between targets and `std` releases (the table's probe groups are
   not the same width everywhere). Code whose output order matters (catalog
   listings, `EXPLAIN`, dumps) sorts.
-- `log` never allocates when no sink is installed, and never prints.
+- `log` never prints. With no sink installed a macro is one atomic load
+  (the sink slot's `OnceLock::get`): it evaluates no argument, formats
+  nothing and allocates nothing. With one, `core` still allocates nothing:
+  the record carries the unformatted arguments. Both are measured with a
+  counting allocator (`tests/log_alloc.rs`, ADR-0017).
+- The sink is set once per process and never replaced, so reading it takes
+  no lock. It runs on the thread that logged; it must not panic or log.
+- A property run is a function of its seed, its name and its case count:
+  case `i` of the property `name` draws from
+  `Pcg32::new(seed ^ fnv1a64(name), i)`, so the seed a failure reports
+  replays it, and one case can be rebuilt alone.
 - Every `SqlState` is one of the named constants; an invalid code fails the
   build.
 - A note never changes an error's SQLSTATE.
@@ -256,6 +288,25 @@ the format, not a setting.
   (including quotes, delimiters, CR, LF and empty strings); `Reader` never
   panics on random buffers and offsets. M0.3's are plain seeded `Pcg32`
   loops, written before `testing::check` existed.
+- `testing`: each case draws once from its own stream; sizes run evenly
+  from 0 to 100 (pinned at 1, 2, 3, 101 and 1,000 cases and at the largest
+  run); the report of the first failing case is pinned word for word, and
+  later cases do not run; only a failing case is formatted; panics in the
+  generator, the property, or the input's `Debug` form or drop (even with
+  a payload whose own drop panics) are reported with their message and
+  the seed; shrinking finds the smallest failing size of the same case, at
+  both ends of its scan (0 and one below the first failing size) and when
+  failure does not grow with size; seeds parse as decimal or `0x` hex
+  digits only. `tests/testing_seed.rs` runs a failing `check` and a
+  failing `check_sized` in a child process with `HARDSHELL_SEED` set,
+  unset, empty and malformed, and checks that the seed each reports
+  replays the same case and input, and that the panic points at the
+  caller.
+- `log`: levels order and print by name; `tests/log_sink.rs` checks each
+  macro's level, target (the calling module) and message, that arguments
+  are evaluated once, that the sink runs on the logging thread, and that a
+  second sink is refused; `tests/log_alloc.rs` counts allocations with and
+  without a sink.
 - `Pcg32` against the reference demo's first round for seed 42 and stream
   54 (six outputs, 65 coin flips, 33 dice rolls, a 52-card shuffle);
   `range` rejects the biased outputs on both its paths, and matches the
@@ -270,6 +321,11 @@ the format, not a setting.
 
 ## Open questions
 
+- Level filtering: once a sink is installed, every macro at every level
+  evaluates its arguments and calls the sink, which filters. A maximum
+  level stored with the sink would keep a filtered `trace!` at one load and
+  a compare. Decide with `set_log_sink`'s signature at M6.5, or earlier if
+  logging shows up in a profile.
 - Hardware CRC-32C (SSE4.2 / ARMv8 CRC) needs `unsafe` intrinsics, which
   ADR-0013 forbids outside `hardshell-os`. Decide at M9 only if checksums
   exceed ADR-0009's 5% trigger.
