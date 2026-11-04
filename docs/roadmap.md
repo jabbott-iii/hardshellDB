@@ -154,7 +154,7 @@ enforced by tooling from day one.
     threshold (core.md, open questions). `assert_approx!` is not built: no
     test needs it yet. M0.3's property tests stay plain loops.
 
-- [ ] **M0.5 — xtask: deps, layers, unsafe-audit, headers, ci**
+- [x] **M0.5 — xtask: deps, layers, unsafe-audit, headers, ci**
   - Depends: M0.1
   - Do:
     - `deps`: parse `cargo metadata --format-version 1` with a small JSON
@@ -184,6 +184,38 @@ enforced by tooling from day one.
   - Note (from M0.1): every `.rs` file already carries the header. Decide
     which other files `headers` covers (TOML manifests and configs have
     none yet).
+  - Note: `headers` covers what ADR-0015 calls source: `.rs` (`//`),
+    scripts `.sh`, `.bash`, `.py`, `.ps1` and `.github/workflows/*.yml`
+    (`#`). Manifests, configs, Markdown, the allowlist and fixtures carry
+    none. Every existing source file already had the header.
+  - Note: rustdoc compiles doc examples without `[lints]`, so
+    `unsafe_code = "deny"` does not stop an `unsafe` block in one (checked
+    with Rust 1.99.0, as is that lint flags in `RUSTDOCFLAGS` do not reach
+    them either). Every library root now carries
+    `#![doc(test(attr(forbid(unsafe_code))))]`, so the compiler rejects
+    one, even with its own `allow` (user decision, 2026-11-04);
+    `unsafe-audit` fails a library root without it.
+  - Note: `unsafe-audit` allows `unsafe` in `hardshell-os` only once an
+    accepted ADR is listed in `OS_UNSAFE_ADRS` (`xtask/src/unsafe_audit.rs`,
+    empty). A `// SAFETY:` comment covers one `unsafe`, not the next.
+    `std::os::*::fs` counts as `std::fs`; so does what could hide one: a
+    glob or rename of `std`, or an import of `std::os` or a whole OS module
+    (`use std::os::unix`), though a named item (`OsStrExt`) is fine. The audit judges a file by where
+    it sits, so every target's root must lie in its own package (a
+    library's, binary's or build script's not in `tests/`), and a `#[path]`
+    module or `include!` must name a `.rs` file, by a plain literal, in the
+    same top-level directory of its package. `#!` starts a shebang only as
+    rustc reads it (`#!/**/[...]` is an attribute). Outside the packages it
+    skips Cargo's build directories and other checkouts (a nested Git
+    worktree).
+  - Note: every Cargo command `xtask` runs that resolves dependencies is
+    `--locked --offline`, `ci`'s clippy and test included; the checks find
+    the workspace from `xtask`'s manifest directory. `xtask` prints through
+    writes that ignore a closed pipe, so it needs no print lint allowance
+    and keeps its exit status under `| head`. Its tests run real Cargo on
+    throwaway workspaces in the system temporary directory for `deps`,
+    `layers` and `release-no-testing`, and `xtask/tests/cli.rs` runs the
+    binary for its exit statuses.
 
 - [ ] **M0.6 — xtask: fuzz-smoke harness**
   - Depends: M0.5, M0.3
@@ -216,6 +248,11 @@ enforced by tooling from day one.
   - Accept: the report compares against the baseline and flags a
     regression larger than 10%; the bench never fails CI (report only).
   - Verify: `cargo xtask bench crc32c`
+  - Note (from M0.5): `unsafe-audit` allows `std::fs` only in
+    `hardshell-os`, `xtask`, the apps and `tests/`. If the harness itself
+    reads `bench/baseline.txt`, either `cargo xtask bench` reads it and
+    passes it on, or adding `hardshell-bench` to `FS_PACKAGES` is a
+    decision to record.
 
 - [ ] **M0.8 — CI workflow and repository hygiene**
   - Depends: M0.5, M0.6
@@ -235,6 +272,12 @@ enforced by tooling from day one.
     green on all three OSes.
   - Verify: `cargo xtask workflows`; YAML review; the CI run on the first
     PR (human)
+  - Note (from M0.5): `workflows` joins `CHECKS` in `xtask/src/main.rs`,
+    whose order `ci` follows. `headers` already requires the Apache-2.0
+    header, as `#` comments, in `.github/workflows/*.yml`; `dependabot.yml`
+    and the PR template need none. Run `cargo --locked xtask ci`: the
+    `cargo xtask` alias alone would refresh a stale lockfile before the
+    checks see it.
 
 **Exit criteria (M0):** a PR to `main` runs every check on three OSes, and
 a deliberately added third-party crate, forbidden layer edge, or `unsafe`
@@ -1080,6 +1123,11 @@ a release pipeline.
   - Accept: the workflow passes YAML review and `cargo xtask workflows`;
     no secret values anywhere in the repository.
   - Verify: YAML review; `git diff` reviewed for secret material
+  - Note (from M0.5): `release-no-testing` checks what `cargo build
+    --release -p <binary>` turns on. Build each binary with `-p`: a
+    `--workspace` build unifies features across members, so a member that
+    turned `testing` on through a normal dependency would reach the
+    binaries.
 
 - [ ] **M11.7 — security pass**
   - Depends: M11.2

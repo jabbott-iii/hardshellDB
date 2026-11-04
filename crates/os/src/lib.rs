@@ -18,3 +18,7 @@
 //! `FaultVfs` (feature `testing`), file locks and sync rules. Every other
 //! crate does file I/O through it. Design: `docs/subsystems/os-and-vfs.md`
 //! and `docs/03-platforms.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]

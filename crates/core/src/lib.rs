@@ -18,6 +18,10 @@
 //! the property-test harness, the CLI argument parser and the CSV codec.
 //! It depends on no other crate. Design: `docs/subsystems/core.md`.
 
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]
+
 pub mod crc32c;
 pub mod error;
 pub mod hash;

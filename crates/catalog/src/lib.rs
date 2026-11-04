@@ -17,3 +17,7 @@
 //! System tables and the schema objects they describe (tables, columns,
 //! indexes, constraints, views, sequences, statistics), loaded into a
 //! versioned `Schema` per snapshot. Design: `docs/subsystems/catalog.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]

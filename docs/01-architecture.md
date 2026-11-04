@@ -146,6 +146,12 @@ test binary's counting allocator can allow it on its `unsafe impl
 GlobalAlloc` alone (ADR-0017). `cargo xtask unsafe-audit` checks that the
 attribute appears nowhere else.
 
+Doc examples get none of these lints: rustdoc compiles them as separate
+crates. So every library root carries
+`#![doc(test(attr(forbid(unsafe_code))))]`, under which the compiler
+rejects `unsafe` in any doc example, even one that allows it for itself.
+`cargo xtask unsafe-audit` fails a library root without it.
+
 ## The life of a statement
 
 Everything runs on the caller's thread. This is the shape the facade

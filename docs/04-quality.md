@@ -3,8 +3,8 @@
 Because we write our own storage engine, parser and types, testing has to
 do the job that a mature, battle-tested engine's history would otherwise
 do. Every harness below is our own code (dependency policy items 21–24).
-The property-test harness is built (M0.4); each other harness names the
-roadmap task that builds it.
+The property-test harness (M0.4) and the `xtask` checks (M0.5) are built;
+each other harness names the roadmap task that builds it.
 
 ## Test layers
 
@@ -176,18 +176,22 @@ pub fn check_sized<T: std::fmt::Debug>(
 | Check | Implementation |
 | :- | :- |
 | `fmt` | `cargo fmt --all -- --check` |
-| `clippy` | `cargo clippy --workspace --all-targets --all-features -- -D warnings` |
-| `test` | `cargo test --workspace --all-features` (includes the SLT runner) |
-| `deps` | `cargo metadata --format-version 1`; every package with a non-null `source` must appear in `xtask/deps-allowlist.txt` with its exact version; a path package outside the workspace fails |
-| `layers` | Same metadata; each crate's normal, dev and build dependencies must be within its row of the dependency matrix; a crate with no row fails. The matrix is a `const` table in `xtask`; a unit test compares it with `docs/01-architecture.md` |
-| `unsafe-audit` | Scans `*.rs`, ignoring comments and strings: no `unsafe` outside `hardshell-os`, except in the `unsafe impl GlobalAlloc` of a counting allocator in a crate's `tests/` (ADR-0017); `allow(unsafe_code)` only at that crate's root and only if an ADR allows it, or on that impl; every `unsafe` block or impl preceded by `// SAFETY:` within 3 lines; no `std::fs` outside `hardshell-os`, `xtask`, the apps and tests; prints per-crate counts |
-| `headers` | Every source file starts with the Apache-2.0 header of `LICENSE`'s appendix in its comment syntax (ADR-0015) |
-| `release-no-testing` | The `testing` feature is absent from the non-dev dependency trees of `hardshell-cli` and `hardshell-server` |
+| `clippy` | `cargo clippy --locked --offline --workspace --all-targets --all-features -- -D warnings` |
+| `test` | `cargo test --locked --offline --workspace --all-features` (includes the SLT runner and the doctests) |
+| `deps` | `cargo metadata --format-version 1 --all-features`, read by `xtask`'s own JSON reader; every package with a non-null `source` must appear in `xtask/deps-allowlist.txt` (`name version ADR-NNNN`) with its exact version; a path package that is not a member fails |
+| `layers` | Same metadata; each member's normal, dev and build dependencies on other members, on every target, must be within its row of the dependency matrix; a member with no row fails. A crate depending on itself (to turn on a feature for its own tests) is not an edge. The matrix is a `const` table in `xtask`; a unit test compares it with `docs/01-architecture.md` |
+| `unsafe-audit` | Lexes every `.rs` file under the workspace root, so comments and strings are not code, and judges each by where it sits; it skips `.git`, the build directory, and a directory outside every package that holds a `CACHEDIR.TAG` with the tag's signature or a `.git` of its own (another checkout). No `unsafe` outside `hardshell-os`, except in the `unsafe impl GlobalAlloc` of a counting allocator directly in a crate's `tests/` (ADR-0017); none in `hardshell-os` until an accepted ADR is listed in `OS_UNSAFE_ADRS` (`xtask/src/unsafe_audit.rs`). An attribute lowering `unsafe_code` (`allow`, `expect` or `warn`, in `cfg_attr` or not) only on that impl, or at `hardshell-os`'s crate root once an ADR allows it. Every library root carries `#![doc(test(attr(forbid(unsafe_code))))]`: rustdoc compiles doc examples without the workspace's lints, and with it the compiler rejects `unsafe` in any of them. Every `unsafe` block, impl, extern block and unsafe attribute has its own `// SAFETY:` comment, ending within the 3 lines above it (`unsafe fn`, `trait` and `static` declarations state `# Safety` in their docs instead). Every target's root lies in its own package, and a library's, binary's or build script's not in `tests/`; a `#[path]` module or an `include!` names a `.rs` file in the same top-level directory of its package (`src/`, `tests/`, ...). No `std::fs` or `std::os::*::fs` outside `hardshell-os`, `xtask`, the apps and a package's `tests/`, nor what could hide one: a glob or rename of `std`, or an import of `std::os` or a whole OS module (`use std::os::unix`). Prints per-crate counts |
+| `headers` | Every source file starts with the Apache-2.0 header of `LICENSE`'s appendix in its comment syntax, after a shebang line if it has one (ADR-0015): `//` in `.rs` files, `#` in scripts (`.sh`, `.bash`, `.py`, `.ps1`) and in `.github/workflows/*.yml`. Manifests, configs, docs, data and fixtures carry none |
+| `release-no-testing` | `cargo tree -p <binary> -e no-dev --target all` for `hardshell-cli` and `hardshell-server`: with default features and without dev-dependencies, as `cargo build --release -p <binary>` resolves them, no package has the `testing` feature on |
 | `workflows` (from M0.8) | Every GitHub Action pinned by full commit SHA with a version comment; top-level permissions `contents: read` or `{}`; `persist-credentials: false` on checkout; no `pull_request_target` |
 | `ci` | All of the above in order; stops at the first failure and prints a summary table |
 
 Each check is also a subcommand (`cargo xtask deps`). Exit status: 0 pass,
-1 fail, 2 command line not understood.
+1 fail (a check that cannot run fails), 2 command line not understood.
+Every Cargo command `xtask` runs that resolves dependencies is `--locked`
+and `--offline`. `cargo xtask` itself is a plain `cargo run`, which
+refreshes a stale lockfile before `xtask` starts, so CI runs
+`cargo --locked xtask ci`.
 
 ## CI (GitHub Actions)
 

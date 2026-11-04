@@ -109,14 +109,14 @@ code, commands and checks that do not exist yet: check before assuming.
 | `xtask` | `xtask` | Checks, fuzz smoke, crash campaign runner, benches runner, `diff-pg` | M0 onward |
 | `bench` | `hardshell-bench` | Own benchmark harness and benches | M0.7 |
 
-## Commands (none exist yet; verify one exists before relying on it)
+## Commands (each exists from the task shown; verify one exists before relying on it)
 
 | Command | What it does | From |
 | :- | :- | :- |
-| `cargo xtask ci` | fmt check, clippy (`-D warnings`), tests (with SLT), `deps`, `layers`, `unsafe-audit`, `headers`, `release-no-testing`, `workflows`: the full PR gate | M0.5 |
+| `cargo xtask ci` | fmt check, clippy (`-D warnings`), tests (with SLT), `deps`, `layers`, `unsafe-audit`, `headers`, `release-no-testing`, and `workflows` from M0.8: the full PR gate | M0.5 |
 | `cargo xtask deps` | Fails if `Cargo.lock` has a non-workspace package not approved in the policy | M0.5 |
 | `cargo xtask layers` | Fails if a crate depends on a crate the matrix forbids | M0.5 |
-| `cargo xtask unsafe-audit` | Fails on `unsafe` outside `hardshell-os` and ADR-0017's test counting allocators, or without `// SAFETY:` | M0.5 |
+| `cargo xtask unsafe-audit` | Fails on `unsafe` outside `hardshell-os` and ADR-0017's test counting allocators, or without `// SAFETY:`; on a library root without the doctest `forbid(unsafe_code)`; on `std::fs` in the engine | M0.5 |
 | `cargo xtask headers` | Fails if a source file lacks the Apache-2.0 header (ADR-0015) | M0.5 |
 | `cargo xtask fuzz-smoke [--secs N] [--target T]` | Mutation fuzzer over every parser, or one | M0.6 |
 | `cargo xtask bench [filter]` | Benchmarks in release mode, compared with `bench/baseline.txt` | M0.7 |

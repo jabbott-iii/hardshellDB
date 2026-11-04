@@ -15,3 +15,7 @@
 //! `hardshell-bench`: the project's own benchmark harness and benches.
 //!
 //! Run through `cargo xtask bench`. Design: `docs/04-quality.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]

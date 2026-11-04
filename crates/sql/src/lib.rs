@@ -17,3 +17,7 @@
 //! The lexer, parser, abstract syntax tree and printer for hardshellDB's
 //! PostgreSQL-flavored SQL. Design: `docs/subsystems/sql-frontend.md`; the
 //! supported surface is `docs/sql-reference.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]

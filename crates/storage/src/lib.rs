@@ -18,3 +18,7 @@
 //! checkpoints, recovery, snapshots and B+trees. It stores and compares byte
 //! strings only. Design: `docs/subsystems/storage.md` and
 //! `docs/subsystems/wal-and-transactions.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]

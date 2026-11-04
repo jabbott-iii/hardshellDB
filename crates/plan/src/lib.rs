@@ -16,3 +16,7 @@
 //!
 //! The binder, logical plans, the optimizer, statistics and physical
 //! planning. Design: `docs/subsystems/planner.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]

@@ -86,9 +86,9 @@ pub enum CrashMode { DropAllUnsynced, KeepAllUnsynced, Random, RandomTorn }
 ## Invariants
 
 - No other crate calls `std::fs`, `File::lock` or a sync function. `cargo
-  xtask layers` cannot see this, so review does, and a grep check in
-  `xtask unsafe-audit`'s scan flags `std::fs::` outside `hardshell-os`,
-  `xtask` and the apps.
+  xtask layers` cannot see this, so review does, and `cargo xtask
+  unsafe-audit` fails on `std::fs` or `std::os::*::fs` outside
+  `hardshell-os`, `xtask`, the apps and tests (`docs/04-quality.md`).
 - `read_exact_at` and `write_all_at` loop over partial reads and writes;
   a caller never sees a short operation as success.
 - `StdVfs` never uses the file's cursor, so concurrent positional I/O on one

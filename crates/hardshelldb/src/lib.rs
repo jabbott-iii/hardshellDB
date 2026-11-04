@@ -17,3 +17,7 @@
 //! This is the crate applications depend on: `Database`, `Connection`,
 //! `Statement`, `Rows` and errors, over one engine with a
 //! PostgreSQL-flavored dialect. Design: `docs/subsystems/api.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]

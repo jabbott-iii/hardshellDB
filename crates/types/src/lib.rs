@@ -18,3 +18,7 @@
 //! type, `NUMERIC`, dates and times, and the two byte encodings the storage
 //! engine sees: the order-preserving key encoding and the row encoding.
 //! Design: `docs/subsystems/types-and-values.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]

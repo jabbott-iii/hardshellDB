@@ -16,3 +16,7 @@
 //!
 //! A byte-level codec for the protocol's messages, used by `hardshelld`.
 //! Built in M12. Design: `docs/subsystems/server-and-wire.md`.
+
+// Doc examples get none of the workspace's lints: keep `unsafe` out of them
+// (ADR-0013; `cargo xtask unsafe-audit` checks for this attribute).
+#![doc(test(attr(forbid(unsafe_code))))]
