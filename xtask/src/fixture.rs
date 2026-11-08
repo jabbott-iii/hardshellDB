@@ -42,9 +42,14 @@ impl Fixture {
     /// Writes `text` to `path`, relative to the fixture, making its
     /// directories.
     pub(crate) fn write(&self, path: &str, text: &str) {
+        self.write_bytes(path, text.as_bytes());
+    }
+
+    /// `write` for bytes.
+    pub(crate) fn write_bytes(&self, path: &str, bytes: &[u8]) {
         let path = self.root.join(path);
         fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, text).unwrap();
+        fs::write(path, bytes).unwrap();
     }
 
     /// Cargo for the workspace in `dir`, after generating its lockfile.

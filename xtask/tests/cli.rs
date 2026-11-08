@@ -61,3 +61,71 @@ fn a_closed_pipe_does_not_change_the_exit_status() {
         assert_eq!(child.wait().unwrap().code(), Some(0));
     }
 }
+
+/// The seeds alone (`--secs 0`), on the real corpus.
+#[test]
+fn a_clean_fuzz_run_exits_0_and_prints_its_seed() {
+    let output = xtask(&["fuzz-smoke", "--secs", "0", "--target", "varint"])
+        .env("HARDSHELL_SEED", "0x10")
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0), "{stdout}");
+    let lines: Vec<&str> = stdout.lines().collect();
+    assert_eq!(
+        lines.first(),
+        Some(&"fuzz-smoke: seed 16; HARDSHELL_SEED=16 gives the same inputs")
+    );
+    let summary = lines[1].strip_prefix("fuzz-smoke: varint: ");
+    let seeds = summary.and_then(|summary| summary.split_once(" seeds, then 0 mutated inputs in "));
+    assert!(
+        seeds.is_some_and(|(seeds, _)| seeds.parse::<u32>().is_ok()),
+        "{stdout}"
+    );
+    assert_eq!(lines.last(), Some(&"fuzz-smoke: ok"));
+}
+
+/// `--secs` reaches the run: a second is far more than the seeds.
+#[test]
+fn a_fuzz_run_mutates_for_the_seconds_given() {
+    let output = xtask(&["fuzz-smoke", "--secs", "1", "--target", "varint"])
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert_eq!(output.status.code(), Some(0), "{stdout}");
+    let mutated = stdout
+        .split(" seeds, then ")
+        .nth(1)
+        .and_then(|rest| rest.split(' ').next())
+        .and_then(|count| count.parse::<u64>().ok());
+    assert!(mutated.is_some_and(|mutated| mutated > 1_000), "{stdout}");
+}
+
+#[test]
+fn a_fuzz_run_with_a_malformed_seed_exits_1() {
+    let output = xtask(&["fuzz-smoke", "--secs", "0"])
+        .env("HARDSHELL_SEED", "12a")
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert_eq!(
+        stderr,
+        "fuzz-smoke: could not run: HARDSHELL_SEED is \"12a\": expected a u64 in decimal, \
+         or 0x and hex digits\n"
+    );
+}
+
+#[test]
+fn a_fuzz_command_line_not_understood_exits_2() {
+    for args in [
+        &["fuzz-smoke", "--target", "nope"][..],
+        &["fuzz-smoke", "--secs", "soon"],
+        &["fuzz-smoke", "--secs"],
+    ] {
+        let output = xtask(args).output().unwrap();
+        assert_eq!(output.status.code(), Some(2), "{args:?}");
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains("usage: cargo xtask <command>"), "{args:?}");
+    }
+}

@@ -43,11 +43,14 @@ mod deps;
 mod files;
 #[cfg(test)]
 mod fixture;
+mod fuzz_smoke;
+mod fuzz_targets;
 mod headers;
 mod json;
 mod layers;
 mod lexer;
 mod metadata;
+mod mutate;
 mod release_no_testing;
 mod unsafe_audit;
 
@@ -73,6 +76,10 @@ commands:
   headers              the Apache-2.0 header on every source file (ADR-0015)
   release-no-testing   the `testing` feature off in the CLI's and the
                        server's release builds
+  fuzz-smoke [--secs N] [--target T]
+                       the mutation fuzzer: every target, or T, for N
+                       seconds each (default 60), its seeds always in
+                       full; findings go to fuzz/crashes/ and fail it
   help                 this message
 
 exit status: 0 pass, 1 fail, 2 command line not understood
@@ -150,6 +157,7 @@ enum Command {
     Ci,
     /// The check at this index of `CHECKS`.
     Check(usize),
+    FuzzSmoke(fuzz_smoke::Options),
 }
 
 fn parse(args: &[OsString]) -> Result<Command, String> {
@@ -166,6 +174,7 @@ fn parse(args: &[OsString]) -> Result<Command, String> {
     let command = match name {
         "help" | "-h" | "--help" => Command::Help,
         "ci" => Command::Ci,
+        "fuzz-smoke" => return fuzz_smoke::parse(rest).map(Command::FuzzSmoke),
         _ => match CHECKS.iter().position(|(check, _)| *check == name) {
             Some(index) => Command::Check(index),
             None => return Err(format!("unknown command `{name}`")),
@@ -193,6 +202,7 @@ fn main() -> ExitCode {
             true
         }
         Ok(Command::Ci) => ci::run(&root()),
+        Ok(Command::FuzzSmoke(options)) => fuzz_smoke::run(&root(), &options),
         Ok(Command::Check(index)) => {
             let Some(&(name, check)) = CHECKS.get(index) else {
                 return ExitCode::from(2);
@@ -217,6 +227,7 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::{CHECKS, Command, Report, parse, report_to};
+    use crate::fuzz_smoke::Options;
     use std::ffi::OsString;
 
     fn args(words: &[&str]) -> Vec<OsString> {
@@ -231,6 +242,20 @@ mod tests {
         for (index, (name, _)) in CHECKS.iter().enumerate() {
             assert_eq!(parse(&args(&[name])), Ok(Command::Check(index)));
         }
+        assert_eq!(
+            parse(&args(&["fuzz-smoke"])),
+            Ok(Command::FuzzSmoke(Options {
+                secs: 60,
+                target: None
+            }))
+        );
+        assert_eq!(
+            parse(&args(&["fuzz-smoke", "--secs", "5", "--target", "varint"])),
+            Ok(Command::FuzzSmoke(Options {
+                secs: 5,
+                target: Some(0)
+            }))
+        );
     }
 
     #[test]
@@ -241,6 +266,9 @@ mod tests {
             &["ci", "extra"],
             &["deps", "--verbose"],
             &["CI"],
+            &["fuzz-smoke", "--secs"],
+            &["fuzz-smoke", "--target", "nope"],
+            &["fuzz-smoke", "extra"],
         ] {
             assert!(parse(&args(words)).is_err(), "{words:?}");
         }

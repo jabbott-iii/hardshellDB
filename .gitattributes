@@ -1,0 +1,2 @@
+# Fuzz seeds and findings are bytes: Git never changes their line endings.
+fuzz/** binary

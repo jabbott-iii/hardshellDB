@@ -21,7 +21,7 @@ milestones add to it only when two or more crates need the same thing.
 | `hash` | `fnv1a64` (fixed by its definition, so its values may be stored or printed); `FastHasher` (a folded multiply per 64-bit word, then a finishing fold) with `FastHashMap` / `FastHashSet` aliases: deterministic, non-cryptographic, values never stored. Neither resists chosen keys: use `RandomState` where a remote party picks them |
 | `rng` | `Pcg32`: `new(seed, stream)` as the reference's `pcg32_srandom_r`, `next_u32`, `next_u64` (low half first), `range(bound)` (unbiased; the reference's `pcg32_boundedrand_r` up to `u32::MAX`; panics on 0), `shuffle` (as the reference demo deals cards), `fill_bytes`; not for secrets |
 | `log` | Macros `error!`, `warn!`, `info!`, `debug!`, `trace!` (`format!` arguments, the calling module's `module_path!()` as the target), reached as `hardshell_core::log::warn!`; `Level`, `LogRecord` (level, target, unformatted `fmt::Arguments`), `Sink`; one process-wide sink slot, set once by `set_sink` (the facade's `set_log_sink`): a second call gets its sink back as `Err`. With no sink a macro costs one atomic load and evaluates none of its arguments |
-| `testing` | Property-test harness `check` and `check_sized` (see `docs/04-quality.md`), `DEFAULT_SEED`, `MAX_SIZE`; the seed from `HARDSHELL_SEED`. `assert_approx!` is not built yet: it arrives with the first float test that needs it |
+| `testing` | Property-test harness `check` and `check_sized` (see `docs/04-quality.md`), `DEFAULT_SEED`, `MAX_SIZE`; the seed from `HARDSHELL_SEED` (`SEED_VAR`), parsed by `seed_from`, which `cargo xtask fuzz-smoke` shares. `assert_approx!` is not built yet: it arrives with the first float test that needs it |
 | `cli` | Minimal argument parser for `xtask`, `hardshell` and `hardshelld` (`--flag`, `--key value`, `-k value`, positionals, `--`) |
 | `csv` | RFC 4180 reader and writer over bytes: configurable delimiter, quote and escape, header row, `\N`-style NULL marker; no types (the facade converts fields with `hardshell-types`) |
 | `civil` | UTC civil date and time from `SystemTime` (days-to-civil), for log lines and file names |
@@ -101,6 +101,8 @@ pub fn set_sink(sink: Sink) -> Result<(), Sink>;          // the first call wins
 
 pub const DEFAULT_SEED: u64;               // 42: the seed when HARDSHELL_SEED is unset or empty
 pub const MAX_SIZE: u32;                   // 100
+pub const SEED_VAR: &str;                  // "HARDSHELL_SEED"
+pub fn seed_from(value: Option<&OsStr>) -> Result<u64, String>;  // the variable's value; Err names it
 pub fn check<T: Debug>(name: &str, cases: u32,
     generate: impl Fn(&mut Pcg32) -> T, property: impl Fn(&T) -> Result<(), String>);
 pub fn check_sized<T: Debug>(name: &str, cases: u32,
@@ -317,7 +319,8 @@ the format, not a setting.
   page numbers, strided and high-bit integers, pairs and names spread over
   buckets and tags as random hashes would.
 - `civil` against known timestamps, including leap years and 2038.
-- Fuzz targets `varint` (M0.6) and `csv` (`docs/04-quality.md`).
+- Fuzz targets `varint` (M0.6: whatever it decodes re-encodes to exactly
+  the bytes it used) and `csv` (M8.1) (`docs/04-quality.md`).
 
 ## Open questions
 

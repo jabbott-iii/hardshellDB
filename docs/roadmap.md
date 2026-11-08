@@ -217,7 +217,7 @@ enforced by tooling from day one.
     `layers` and `release-no-testing`, and `xtask/tests/cli.rs` runs the
     binary for its exit statuses.
 
-- [ ] **M0.6 — xtask: fuzz-smoke harness**
+- [x] **M0.6 — xtask: fuzz-smoke harness**
   - Depends: M0.5, M0.3
   - Do: `cargo xtask fuzz-smoke [--secs N] [--target T]`: seeds from
     `fuzz/corpus/<target>/` run unchanged, then mutated (bit flips, byte
@@ -238,6 +238,28 @@ enforced by tooling from day one.
     and hex digits; empty means unset) in a private `seed_from`. Make it
     public and share it rather than parse the variable another way; M2.6's
     `cargo xtask crash` likewise.
+  - Note: `testing::seed_from` and `SEED_VAR` are public, and
+    `fuzz-smoke` reads `HARDSHELL_SEED` through them.
+  - Note: `TARGETS` in `xtask/src/fuzz_targets.rs` lists each target: a
+    name, an input limit and a function that panics on a bug. `varint`
+    takes up to 32 bytes and checks the re-encoding; its 12 seeds are in
+    `fuzz/corpus/varint/`, which `.gitattributes` marks binary. A corpus
+    file whose name starts with `.` is not a seed.
+  - Note: input `i` of target `t` depends only on the seeds and
+    `Pcg32::new(seed ^ fnv1a64(t), i)`, so the watchdog rebuilds a hung
+    input rather than copy every input. A hang ends that target's run and
+    leaves its thread to finish or to the process's exit. `--secs` counts
+    from the target's start; the seeds always run in full, and `--secs 0`
+    runs them alone.
+  - Note: a stack overflow, a failed allocation and a panic while
+    unwinding abort the run (status 134 on Linux) without saving the
+    input; for the last, the run first prints the input's index and bytes
+    and the first panic. Planted in a scratch copy of `varint::decode_u64`:
+    an accepted overlong encoding, an out-of-bounds index and an endless
+    loop were each found and saved; unbounded recursion aborted.
+  - Note: measured on Linux x86_64 with seed 42: `--secs 5` ran the 12
+    seeds and 21.3 million mutated `varint` inputs, and the default 60 s
+    ran 274 million, all clean.
 
 - [ ] **M0.7 — bench: harness**
   - Depends: M0.4
@@ -278,6 +300,10 @@ enforced by tooling from day one.
     and the PR template need none. Run `cargo --locked xtask ci`: the
     `cargo xtask` alias alone would refresh a stale lockfile before the
     checks see it.
+  - Note (from M0.6): the fuzz step is `cargo --locked xtask fuzz-smoke
+    --secs 30`. A finding exits 1 and prints its input's first 32 bytes;
+    the file itself stays in `fuzz/crashes/` on the runner unless the
+    workflow uploads it.
 
 **Exit criteria (M0):** a PR to `main` runs every check on three OSes, and
 a deliberately added third-party crate, forbidden layer edge, or `unsafe`
@@ -650,6 +676,11 @@ and reject everything else with `0A000` or `42601` (ADR-0011).
   - Accept: `parse(print(ast)) == ast` for generated ASTs (property test);
     a 10,000-deep expression is `54001`, not a stack overflow; fuzz clean
     for 60 s.
+  - Note (from M0.6): `fuzz-smoke` runs targets inside the `xtask`
+    process, so a stack overflow aborts the run (status 134) and saves
+    nothing: the printed seed reproduces the abort, but not the input. If
+    the `sql` target meets one, the next step is a supervisor that reruns
+    the target in a child process and narrows down its last inputs.
   - Verify: `cargo test -p hardshell-sql`;
     `cargo xtask fuzz-smoke --target sql --secs 60`
 
@@ -1103,6 +1134,9 @@ a release pipeline.
   - Do: a nightly workflow: `fuzz-smoke` 30 minutes per target (one job per
     target), crash campaigns of 1,000,000 iterations, property tests with
     random seeds; artifacts uploaded on failure.
+  - Note (from M0.6): a job is `cargo --locked xtask fuzz-smoke --secs 1800
+    --target <T>` with a random `HARDSHELL_SEED`, which the run prints
+    first; `fuzz/crashes/<T>/` holds what it found.
   - Accept: a week of clean nightly runs, recorded in a note.
   - Verify: nightly CI logs
 

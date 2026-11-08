@@ -3,8 +3,9 @@
 Because we write our own storage engine, parser and types, testing has to
 do the job that a mature, battle-tested engine's history would otherwise
 do. Every harness below is our own code (dependency policy items 21–24).
-The property-test harness (M0.4) and the `xtask` checks (M0.5) are built;
-each other harness names the roadmap task that builds it.
+The property-test harness (M0.4), the `xtask` checks (M0.5) and the fuzz
+smoke harness (M0.6) are built; each other harness names the roadmap task
+that builds it.
 
 ## Test layers
 
@@ -17,7 +18,7 @@ each other harness names the roadmap task that builds it.
 | SQL logic tests | `tests/slt/**/*.slt` via `crates/hardshelldb/tests/slt.rs` | `cargo test -p hardshelldb --test slt` | Wrong query results, wrong error codes |
 | Crash campaigns | `crates/storage/tests/crash.rs`, `crates/hardshelldb/tests/crash.rs` via `cargo xtask crash` | CI (short), nightly (long) | Lost commits, visible uncommitted data, corruption after a crash |
 | Process-kill test | `crates/storage/tests/kill.rs` | `cargo test --release`, each OS | Real-OS process crashes mid-commit |
-| Fuzz smoke | `cargo xtask fuzz-smoke` | CI (time-boxed), nightly | Panics, hangs, huge allocations in parsers and decoders |
+| Fuzz smoke | `cargo xtask fuzz-smoke` | CI (time-boxed), nightly | Panics and hangs in parsers and decoders; a stack overflow, a failed allocation or a panic while unwinding aborts the run |
 | Format fixtures | `tests/fixtures/format-v<N>/` (from M11.1) | `cargo test` | Breaking the on-disk format |
 | Differential tests | `cargo xtask diff-pg` (from M9.6) | Manual and nightly, with PostgreSQL | Semantic drift from PostgreSQL |
 | Benchmarks | `hardshell-bench` | Manual; nightly report | Performance regressions against the stored baseline |
@@ -124,20 +125,52 @@ pub fn check_sized<T: std::fmt::Debug>(
 ### Fuzz smoke (M0.6)
 
 - `cargo xtask fuzz-smoke [--secs N] [--target T]` runs every target (or
-  one) for N seconds each (default 60), in the `xtask` profile (optimized,
-  with overflow checks and debug assertions on).
-- Seeds from `fuzz/corpus/<target>/` run unchanged first; then mutated
-  inputs: bit flips, byte insert/delete, splice, length-field tweaks,
-  interesting integers (0, 1, 255, 65535, `u32::MAX`, `u64::MAX`).
-- Each input runs under `catch_unwind`, with a 2 s hang watchdog. Findings
-  go to `fuzz/crashes/<target>/` (git-ignored), deduplicated by panic
-  location. Copy one into `fuzz/corpus/<target>/` to keep it as a
-  regression seed. Exit status 0 clean, 1 finding.
-- Targets (each registered by the task that adds its parser):
+  one) for N seconds each from its start (default 60; 0 runs the seeds
+  alone), in the `xtask` profile (optimized, with overflow checks and
+  debug assertions on). The seeds always run in full, even past N.
+- Seeds, every file in `fuzz/corpus/<target>/` whose name does not start
+  with `.` (so not `.DS_Store`), in name order, run unchanged first; then
+  mutated inputs: a seed with 1, 2, 4 or 8 mutations, each a bit flip, a
+  byte insert or delete, a splice (the input's head, then a seed's tail),
+  a length-field tweak (1, 2, 4 or 8 bytes in either byte order read as a
+  length, then nudged by up to 16, or set to the number of bytes after
+  it, give or take one, or to 0), or an interesting integer (0, 1, 255,
+  65535, `u32::MAX`, `u64::MAX`, cut to 1, 2, 4 or 8 bytes in either byte
+  order) written over the input or inserted. No input is longer than the
+  target's limit, and no seed may be.
+- The seed is `HARDSHELL_SEED`, read by `hardshell_core::testing::seed_from`
+  (`DEFAULT_SEED` when unset), and the run prints it first. Input `i` of
+  target `t` depends on the seeds and `Pcg32::new(seed ^ fnv1a64(t), i)`
+  alone, so a seed gives the same inputs on every machine, however many a
+  run reaches.
+- Each input runs under `catch_unwind` on a worker thread, which the main
+  thread watches. An input still running after 2 s (wall-clock time, so
+  stopping the process, as a debugger does, can report one) is a hang:
+  the watchdog rebuilds it, saves it and ends that target's run, leaving
+  the stuck thread to finish it or to the process's exit. Findings go to
+  `fuzz/crashes/<target>/` (git-ignored): `panic-` and the 16 hex digits of
+  the FNV-1a hash of the panic location (`file:line:column`), holding the
+  latest run's first input that panicked there, so a location keeps one
+  file from run to run; `hang-` and those of the input. Each is printed
+  with its location and message, the input's index and its first 32
+  bytes. Copy one into `fuzz/corpus/<target>/` to keep it as a regression
+  seed (`.gitattributes` keeps Git from changing its bytes).
+- Exit status 0 clean; 1 a finding, or a target that could not run (no
+  corpus, no seeds, a seed over the limit, a malformed `HARDSHELL_SEED`);
+  2 command line not understood.
+- A stack overflow, a failed allocation, or a panic while unwinding from
+  another (in a destructor) aborts the process, which no `catch_unwind`
+  sees: the run stops with the OS's status (134 on Linux) and saves
+  nothing; the seed printed first replays it. For a panic while unwinding
+  it first prints the input's index and first 32 bytes and the first
+  panic. A huge allocation that succeeds goes unnoticed.
+- Targets are the `TARGETS` table in `xtask/src/fuzz_targets.rs`: a name,
+  an input limit and a function that panics on a bug. Each is registered
+  by the task that adds its parser:
 
   | Target | Input | Crate | Task |
   | :- | :- | :- | :- |
-  | `varint` | LEB128 bytes | `core` | M0.6 |
+  | `varint` | LEB128 bytes; a decoded value re-encodes to exactly the bytes it used | `core` | M0.6 |
   | `page` | A page image of any type | `storage` | M1.4, M3.1 |
   | `wal` | A WAL file | `storage` | M2.1 |
   | `open` | A whole database file, opened in `MemVfs` and checked | `storage` | M3.5 |

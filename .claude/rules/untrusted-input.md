@@ -39,7 +39,8 @@ client on the wire.
   - Text input for types: `22P02` or the type's own code, with the input.
   - Wire: `08P01` (`protocol_violation`), then close the connection.
 - **Every new parser or decoder:**
-  1. registers a `cargo xtask fuzz-smoke` target with a seed corpus in
+  1. registers a `cargo xtask fuzz-smoke` target in `TARGETS`
+     (`xtask/src/fuzz_targets.rs`) with a seed corpus in
      `fuzz/corpus/<target>/` (target names in `docs/04-quality.md`)
   2. has hand-made test vectors beside its tests, including truncated and
      oversized inputs

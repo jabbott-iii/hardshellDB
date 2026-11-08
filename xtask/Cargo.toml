@@ -6,5 +6,9 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
+# The crates whose parsers `cargo xtask fuzz-smoke` fuzzes (docs/01-architecture.md).
+[dependencies]
+hardshell-core.workspace = true
+
 [lints]
 workspace = true

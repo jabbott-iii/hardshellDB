@@ -60,7 +60,7 @@ pub const DEFAULT_SEED: u64 = 42;
 pub const MAX_SIZE: u32 = 100;
 
 /// The environment variable that sets the seed.
-const SEED_VAR: &str = "HARDSHELL_SEED";
+pub const SEED_VAR: &str = "HARDSHELL_SEED";
 
 /// Runs `property` on `cases` inputs from `generate`, and panics at the
 /// first failure: an `Err` from the property, or a panic in the generator,
@@ -249,9 +249,25 @@ fn seed_from_env() -> u64 {
     }
 }
 
-/// The seed for a `HARDSHELL_SEED` of `value`, or the message for a
-/// malformed one.
-fn seed_from(value: Option<&OsStr>) -> Result<u64, String> {
+/// The seed for a `HARDSHELL_SEED` of `value` (`None` when it is unset):
+/// [`DEFAULT_SEED`] when it is unset or empty, else the `u64` it spells.
+/// Every harness that honors the variable (`cargo xtask fuzz-smoke`) reads
+/// it through this, so they all take the same seeds.
+///
+/// ```
+/// use hardshell_core::testing::{DEFAULT_SEED, seed_from};
+/// use std::ffi::OsStr;
+///
+/// assert_eq!(seed_from(None), Ok(DEFAULT_SEED));
+/// assert_eq!(seed_from(Some(OsStr::new("0x2a"))), Ok(42));
+/// assert!(seed_from(Some(OsStr::new("forty-two"))).is_err());
+/// ```
+///
+/// # Errors
+///
+/// A message naming the variable and its value when `value` is neither
+/// decimal digits nor `0x` and hex digits, or does not fit in a `u64`.
+pub fn seed_from(value: Option<&OsStr>) -> Result<u64, String> {
     let Some(value) = value.filter(|value| !value.is_empty()) else {
         return Ok(DEFAULT_SEED);
     };
