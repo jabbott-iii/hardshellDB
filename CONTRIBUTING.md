@@ -103,6 +103,11 @@ Update the subsystem spec when behavior or design changes,
 ADR) when a decision changes. Tick a roadmap task only when its acceptance
 criteria are met and its verification commands passed.
 
+[`.claude/rules/documentation.md`](.claude/rules/documentation.md) says
+how to write docs, READMEs, and Rust doc comments: for a student and a
+senior engineer at once, explaining each term a student might not know,
+and in American English.
+
 ## Commits and pull requests
 
 - One roadmap task (or one issue) per pull request.

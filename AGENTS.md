@@ -43,6 +43,7 @@ code, commands and checks that do not exist yet: check before assuming.
 | `crates/wire`, `apps/server` | `docs/subsystems/server-and-wire.md` |
 | Tests, CI, `xtask`, `tests/slt`, fuzzing, crash campaigns | `docs/04-quality.md` |
 | Packaging, versions, the file format promise | `docs/05-release.md` |
+| Any doc, README, or Rust doc comment | `.claude/rules/documentation.md` |
 | Why something is the way it is | `docs/decisions.md` |
 
 ## Non-negotiable rules
