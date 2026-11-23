@@ -82,11 +82,15 @@ code, commands and checks that do not exist yet: check before assuming.
    - Report what you did not run.
 8. **Smallest complete change.**
    - No unrelated refactors, renames, reformatting or "while I'm here" fixes.
+     The one exception: correct British spellings in prose and comments
+     wherever you see them, in a commit of their own
+     (`.claude/rules/documentation.md`).
    - Preserve public APIs and the on-disk format unless the task authorizes
      a break; record breaks in `docs/decisions.md`.
 9. **Git is read-only for agents.** Do not commit, amend, rebase, merge, tag,
    push, force-push or rewrite history. Leave all changes uncommitted for
-   human review.
+   human review, and end the task with a copy-ready commit message
+   (`.claude/rules/commits.md`).
 10. **No secrets.** Never write tokens, keys, certificates or passwords into
     the repository, test fixtures included. Release secrets exist only in
     CI secret storage (`docs/05-release.md`).

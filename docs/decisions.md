@@ -465,7 +465,7 @@ change or reject each before the roadmap task that depends on it starts.
     fails on any other `unsafe` outside `hardshell-os`.
 - **Consequences:** allocation claims are measured, not argued. Each test
   file that counts holds its own copy of the forwarder (about 40 lines); the
-  first is `crates/core/tests/log_alloc.rs`. The audit recognises a second
+  first is `crates/core/tests/log_alloc.rs`. The audit recognizes a second
   allowed shape. The rest of ADR-0013 stands.
 - **Alternatives considered:** the argued check above (weaker: it shows
   what the code does not do, not what the allocator saw); one shared

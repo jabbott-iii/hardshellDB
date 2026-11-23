@@ -111,9 +111,15 @@ and in American English.
 ## Commits and pull requests
 
 - One roadmap task (or one issue) per pull request.
-- Commit messages: a short imperative summary line naming the task
-  (`M1.5: buffer pool with clock-sweep eviction`), a blank line, then what
-  and why.
+- One logical change per commit.
+- Commit messages follow
+  [Conventional Commits](https://www.conventionalcommits.org/):
+  `type(scope): summary` in the imperative, with the roadmap task's ID at
+  the end when there is one
+  (`feat(storage): add the buffer pool and pager (M1.5)`), a blank line,
+  then what changed and why.
+  [`.claude/rules/commits.md`](.claude/rules/commits.md) lists the types
+  and scopes.
 - Dependency upgrades, toolchain bumps and format changes are their own
   pull requests.
 

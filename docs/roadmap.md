@@ -1283,7 +1283,7 @@ the SLT corpus against `hardshelld` with results identical to embedded.
 | Locale collations | ADR-0014's trigger |
 | Schemas beyond `public` (`CREATE SCHEMA`, `search_path`) | Applications that need namespaces |
 | Time zone database for `TIMESTAMPTZ` beyond fixed offsets | User demand; needs a decision on shipping tzdata |
-| Line editing and history in the CLI; Ctrl-C cancelling the running query instead of exiting | Needs terminal raw mode and signal handling: one ADR under ADR-0013 can cover terminal, signals and OS randomness together |
+| Line editing and history in the CLI; Ctrl-C canceling the running query instead of exiting | Needs terminal raw mode and signal handling: one ADR under ADR-0013 can cover terminal, signals and OS randomness together |
 | C API and bindings for other languages | A non-Rust user; needs `unsafe` FFI and an ADR |
 | WASM build | ADR-0001's trigger |
 | Encryption at rest | User demand; criterion 2 of the dependency policy |

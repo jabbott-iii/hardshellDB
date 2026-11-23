@@ -137,7 +137,7 @@ Aggregates accept `DISTINCT` and `FILTER (WHERE ...)`.
   same results as with plenty.
 - Allocation tests: a steady-state scan and a hash join allocate nothing per
   row after warm-up (counting allocator in the test binary, ADR-0017).
-- Interrupt tests: a long query is cancelled within 50 ms of the interrupt.
+- Interrupt tests: a long query is canceled within 50 ms of the interrupt.
 
 ## Open questions
 

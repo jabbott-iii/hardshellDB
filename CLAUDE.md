@@ -26,6 +26,7 @@ matching files:
 | `sql-semantics.md` | `sql`, `plan`, `exec`, `types`, SLT files, `docs/sql-reference.md` |
 | `os-and-unsafe.md` | `os` |
 | `documentation.md` | Every Markdown file, `docs/`, and Rust source (for its doc comments) |
+| `commits.md` | Every session (it has no `paths`): commit messages and how to split work into commits |
 
 **Permissions:**
 

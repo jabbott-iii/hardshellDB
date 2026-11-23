@@ -93,7 +93,8 @@ Requested task: `$ARGUMENTS` (empty means "pick the next unblocked task").
 ## 6. Do not commit
 
 Leave all changes uncommitted. Do not commit, amend, rebase, tag or push.
-You may suggest a commit message in the report.
+End the report with a copy-ready commit message, as
+`.claude/rules/commits.md` describes.
 
 ## 7. Report
 
