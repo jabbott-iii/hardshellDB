@@ -28,8 +28,9 @@ code, commands and checks that do not exist yet: check before assuming.
 
 | If you are touching… | Read first |
 | :- | :- |
-| Anything | `docs/00-overview.md`, `docs/01-architecture.md` |
-| `Cargo.toml`, `Cargo.lock`, a new crate | `docs/02-dependency-policy.md` |
+| Anything | `docs/00-overview.md`, `docs/01-architecture.md`, `.claude/rules/commits.md`, `.claude/rules/testing.md` |
+| Any Rust code | `.claude/rules/rust.md` |
+| `Cargo.toml`, `Cargo.lock`, a new crate | `docs/02-dependency-policy.md`, `.claude/rules/dependencies.md`, `.claude/rules/manifests.md` |
 | `crates/core` | `docs/subsystems/core.md` |
 | `crates/os` | `docs/subsystems/os-and-vfs.md`, `docs/03-platforms.md` |
 | `crates/types` | `docs/subsystems/types-and-values.md` |
@@ -43,7 +44,8 @@ code, commands and checks that do not exist yet: check before assuming.
 | `crates/wire`, `apps/server` | `docs/subsystems/server-and-wire.md` |
 | Tests, CI, `xtask`, `tests/slt`, fuzzing, crash campaigns | `docs/04-quality.md` |
 | Packaging, versions, the file format promise | `docs/05-release.md` |
-| Any doc, README, or Rust doc comment | `.claude/rules/documentation.md` |
+| Any doc, README, or Rust doc comment | `.claude/rules/writing.md`, then `.claude/rules/documentation.md`, which wins where the two differ |
+| The roadmap, an ADR, or a spec's structure | `.claude/rules/roadmap-and-docs.md` |
 | Why something is the way it is | `docs/decisions.md` |
 
 ## Non-negotiable rules
@@ -84,7 +86,7 @@ code, commands and checks that do not exist yet: check before assuming.
    - No unrelated refactors, renames, reformatting or "while I'm here" fixes.
      The one exception: correct British spellings in prose and comments
      wherever you see them, in a commit of their own
-     (`.claude/rules/documentation.md`).
+     (`.claude/rules/writing.md`, "Existing British spellings").
    - Preserve public APIs and the on-disk format unless the task authorizes
      a break; record breaks in `docs/decisions.md`.
 9. **Git is read-only for agents.** Do not commit, amend, rebase, merge, tag,

@@ -103,10 +103,13 @@ Update the subsystem spec when behavior or design changes,
 ADR) when a decision changes. Tick a roadmap task only when its acceptance
 criteria are met and its verification commands passed.
 
-[`.claude/rules/documentation.md`](.claude/rules/documentation.md) says
-how to write docs, READMEs, and Rust doc comments: for a student and a
-senior engineer at once, explaining each term a student might not know,
-and in American English.
+[`.claude/rules/writing.md`](.claude/rules/writing.md) says how to write
+docs, READMEs, and Rust doc comments: for a student and a senior engineer
+at once, explaining each term a student might not know, and in American
+English. [`.claude/rules/documentation.md`](.claude/rules/documentation.md)
+adds hardshellDB's own conventions, such as KiB for powers of 1,024, and
+[`.claude/rules/roadmap-and-docs.md`](.claude/rules/roadmap-and-docs.md)
+says how the roadmap, the ADRs, and the specs are kept.
 
 ## Commits and pull requests
 
@@ -126,10 +129,11 @@ and in American English.
 ## Coding agents
 
 Agents follow [`AGENTS.md`](AGENTS.md). Claude Code also loads
-[`CLAUDE.md`](CLAUDE.md), the path-scoped rules in `.claude/rules/`, and the
-project skills in `.claude/skills/` (`/next-task`, `/add-sql-feature`,
-`/change-on-disk-format`, `/evaluate-dependency`, `/record-decision`).
-Agents never commit, push or tag; a human reviews and commits their work.
+[`CLAUDE.md`](CLAUDE.md), the rules in `.claude/rules/`, and the project
+skills in `.claude/skills/`, which `CLAUDE.md` lists. Several of them are
+copies from [Doctrina](https://github.com/jabbott-iii/Doctrina), a shared
+library of rules and skills. Agents never commit, push or tag; a human
+reviews and commits their work.
 
 ## Security issues
 

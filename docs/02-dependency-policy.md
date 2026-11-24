@@ -149,7 +149,8 @@ trigger** fires. It is not approved, and nothing about it has been verified.
   package lies outside the workspace (vendored code).
 - **`cargo xtask layers`** checks the workspace dependency graph against the
   matrix in `docs/01-architecture.md`.
-- **Path-scoped rule** `.claude/rules/dependencies.md` loads whenever an agent
-  opens a Cargo manifest.
+- **Agent rules:** `.claude/rules/dependencies.md` loads in every Claude
+  Code session, and the path-scoped `.claude/rules/manifests.md` loads
+  whenever an agent opens a Cargo manifest.
 - **Claude Code permissions** (`.claude/settings.json`) ask before
   `cargo add`, `cargo remove`, `cargo update` and `cargo install`.
