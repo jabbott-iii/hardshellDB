@@ -21,9 +21,10 @@ them.
    accepted before code depends on it.
 3. Make the smallest complete change that meets the task's acceptance
    criteria.
-4. Run the task's `Verify` commands and `cargo xtask ci`.
+4. Run the task's `Verify` commands and `cargo --locked xtask ci`.
 5. Open a pull request that says which task it completes, what you ran and
-   what you could not run (for example a check that needs another OS).
+   what you could not run (for example a check that needs another OS). The
+   pull request template asks for each of these.
 
 ## Ground rules
 
@@ -67,11 +68,22 @@ standard library.
 
 | Command | What it does | From |
 | :- | :- | :- |
-| `cargo xtask ci` | The full PR gate: fmt, clippy, tests, and the project checks | M0.5 |
+| `cargo --locked xtask ci` | The full PR gate: fmt, clippy, tests, and the project checks | M0.5 |
 | `cargo xtask fuzz-smoke --secs 60 [--target T]` | Mutation fuzzing of the parsers and decoders | M0.6 |
 | `cargo xtask crash --iterations N` | Crash campaigns under the fault-injecting file system | M2.6 |
 | `cargo test -p hardshelldb --test slt` | SQL logic tests in `tests/slt/` | M6.6 |
 | `cargo xtask bench [filter]` | Benchmarks against the stored baseline | M0.7 |
+
+Run the full gate with `--locked`, so Cargo builds from `Cargo.lock` as
+committed instead of updating it first:
+
+```bash
+cargo --locked xtask ci
+```
+
+A passing run ends with a table that lists each step (`fmt`, `clippy`,
+`test`, `deps`, `layers`, `unsafe-audit`, `headers`,
+`release-no-testing`) with the result `ok`.
 
 [`docs/04-quality.md`](docs/04-quality.md) describes each harness and the
 CI jobs.
@@ -125,6 +137,13 @@ says how the roadmap, the ADRs, and the specs are kept.
   and scopes.
 - Dependency upgrades, toolchain bumps and format changes are their own
   pull requests.
+- The pull request template holds the definition-of-done checklist from
+  `AGENTS.md`. Fill in what you ran, with its results, and what you could
+  not run.
+- `cargo --locked xtask ci` must pass, and CodeQL code scanning runs on
+  every pull request. From M0.8, the task that adds the CI workflow, CI
+  also runs the gate on Linux, macOS and Windows.
+- `CODEOWNERS` asks the maintainer to review every pull request.
 
 ## Coding agents
 
@@ -134,6 +153,11 @@ skills in `.claude/skills/`, which `CLAUDE.md` lists. Several of them are
 copies from [Doctrina](https://github.com/jabbott-iii/Doctrina), a shared
 library of rules and skills. Agents never commit, push or tag; a human
 reviews and commits their work.
+
+## Bugs and feature requests
+
+Open an issue from a form under **Issues** → **New issue**: the bug report,
+or the feature request for anything not on the roadmap.
 
 ## Security issues
 
