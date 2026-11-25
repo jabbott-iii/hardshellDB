@@ -1,0 +1,59 @@
+name: "Bug report"
+description: "Report something in hardshellDB that doesn't work as documented."
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Don't use this form for a security vulnerability. That includes a
+        panic, hang, or unbounded memory use caused by SQL text, a database or
+        WAL file, CSV input, or a wire message, and committed data lost or
+        corrupted after a crash. Report those privately, as the
+        [security policy](https://github.com/jabbott-iii/hardshellDB/security/policy)
+        describes. Leave passwords, tokens, and personal data out of this report."
+  - type: input
+    id: version
+    attributes:
+      label: "Commit or release"
+      description: "The output of `git rev-parse HEAD`, or the release version.
+        There are no releases yet."
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: "Platform"
+      options:
+        - "Linux, x86_64"
+        - "Linux, aarch64"
+        - "macOS, Apple silicon"
+        - "macOS, Intel"
+        - "Windows, x86_64"
+        - "Windows, aarch64"
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: "OS version and filesystem"
+      description: "For example, Ubuntu 24.04 on ext4, or macOS 15.2 on APFS."
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce"
+      description: "The SQL, Rust code, or commands that show the problem, as
+        small as you can make them."
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: "What you expected, and what happened instead"
+      description: "For a wrong query result, say what PostgreSQL returns for
+        the same SQL, if you know."
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: "Error messages, SQLSTATE codes, or logs"
+      render: "text"

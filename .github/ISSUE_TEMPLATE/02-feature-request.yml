@@ -1,0 +1,34 @@
+name: "Feature request"
+description: "Ask for something hardshellDB doesn't do yet, such as new SQL or a new API."
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: "Check the
+        [roadmap](https://github.com/jabbott-iii/hardshellDB/blob/main/docs/roadmap.md)
+        first, because it may already plan what you need. New SQL, a
+        third-party crate, or a change to the file format each needs a decision
+        before anyone writes code, and this issue is where that decision starts.
+        A crate also needs the evaluation that the
+        [dependency policy](https://github.com/jabbott-iii/hardshellDB/blob/main/docs/02-dependency-policy.md)
+        describes."
+  - type: textarea
+    id: need
+    attributes:
+      label: "What you need, and why"
+      description: "The problem you want to solve, not only the feature you have
+        in mind."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "What you propose"
+      description: "For SQL, the statement or function, with a link to
+        PostgreSQL's documentation for it."
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: "What you do today instead"
