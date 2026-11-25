@@ -304,6 +304,12 @@ enforced by tooling from day one.
     --secs 30`. A finding exits 1 and prints its input's first 32 bytes;
     the file itself stays in `fuzz/crashes/` on the runner unless the
     workflow uploads it.
+  - Note (2026-11-24): `/set-up-github` wrote `.github/dependabot.yml`
+    (GitHub Actions only) and `.github/pull_request_template.md` (the
+    definition-of-done checklist), and pinned the CodeQL workflow's actions
+    by commit SHA, with top-level `permissions: {}` and
+    `persist-credentials: false`. What remains is `ci.yml` and
+    `cargo xtask workflows`, which must also pass on `codeql.yml`.
 
 **Exit criteria (M0):** a PR to `main` runs every check on three OSes, and
 a deliberately added third-party crate, forbidden layer edge, or `unsafe`
