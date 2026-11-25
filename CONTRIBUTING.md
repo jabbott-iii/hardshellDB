@@ -115,6 +115,15 @@ Update the subsystem spec when behavior or design changes,
 ADR) when a decision changes. Tick a roadmap task only when its acceptance
 criteria are met and its verification commands passed.
 
+When you tick a task, update every other place that reports status, so
+they all agree with the roadmap: its `Status:` line, the status paragraph
+at the top of `AGENTS.md`, the "Status" section of `README.md`, the Status
+column of `docs/sql-reference.md`, and the opening paragraph of
+`docs/04-quality.md`. A new command, module, or rule goes in the agent
+guide: the "Read before working" table and the workspace map in
+`AGENTS.md`, and the tables in `CLAUDE.md`. A change to the workflow or the
+checks updates this guide and the issue and pull request templates.
+
 [`.claude/rules/writing.md`](.claude/rules/writing.md) says how to write
 docs, READMEs, and Rust doc comments: for a student and a senior engineer
 at once, explaining each term a student might not know, and in American
@@ -156,6 +165,9 @@ reviews and commits their work.
 
 Open an issue from a form under **Issues** → **New issue**: the bug report,
 or the feature request for anything not on the roadmap.
+
+Ask questions in [Discussions](https://github.com/jabbott-iii/hardshellDB/discussions),
+which the **New issue** chooser also links to.
 
 ## Security issues
 
