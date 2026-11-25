@@ -35,6 +35,9 @@ Include as much of this as you can:
   what you expected.
 - The fuzz target and seed, if a fuzzer found it.
 
+Test only on systems and data you own. Never test against someone else's
+application, server, or database files.
+
 ## What to expect
 
 - An acknowledgment within 7 days.
@@ -43,6 +46,9 @@ Include as much of this as you can:
 - Fixes land on `main` and reach users in the next release. The advisory
   is published when the fix is available, crediting you unless you prefer
   otherwise.
+- The advisory is a GitHub security advisory, and GitHub can give it a
+  Common Vulnerabilities and Exposures (CVE) ID, so tools that scan for
+  known vulnerabilities can find it.
 
 ## Scope
 
@@ -79,6 +85,8 @@ Out of scope:
 - Several processes opening one file by bypassing the engine's lock.
 - Denial of service by an application that legitimately runs expensive SQL
   without `statement_timeout` or `work_mem` limits.
+- A vulnerability in Rust's standard library or toolchain, which goes to
+  the [Rust security policy](https://www.rust-lang.org/policies/security).
 
 A full threat model is written in roadmap task M11.7.
 
