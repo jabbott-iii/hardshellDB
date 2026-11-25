@@ -1,8 +1,8 @@
 # 05 — Build, release, operate
 
-Nothing here exists yet. This is the plan the roadmap builds toward
-(M0.1 for profiles, M11.1 for the format promise, M11.6 for the release
-workflow).
+The Cargo profiles (M0.1) and the shared workspace version exist. The
+rest is the plan the roadmap builds toward (M11.1 for the format promise,
+M11.6 for the release workflow).
 
 ## Cargo profiles
 

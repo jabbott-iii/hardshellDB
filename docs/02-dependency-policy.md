@@ -150,7 +150,7 @@ trigger** fires. It is not approved, and nothing about it has been verified.
 - **`cargo xtask layers`** checks the workspace dependency graph against the
   matrix in `docs/01-architecture.md`.
 - **Agent rules:** `.claude/rules/dependencies.md` loads in every Claude
-  Code session, and the path-scoped `.claude/rules/manifests.md` loads
+  Code session, and the path-scoped `.claude/rules/rust.md` loads
   whenever an agent opens a Cargo manifest.
 - **Claude Code permissions** (`.claude/settings.json`) ask before
   `cargo add`, `cargo remove`, `cargo update` and `cargo install`.

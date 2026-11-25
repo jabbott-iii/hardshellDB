@@ -15,8 +15,8 @@ so they can fill them in. Until **Git access** is filled in, treat it as "read-o
   `.claude/settings.json` denies the commands that commit, push, rebase, merge, or tag)
 - **Done checks:** for a roadmap task, the "Definition of done for a roadmap task" in `AGENTS.md`,
   with `cargo --locked xtask ci` passing; for any change, the "Before finishing" steps of each rule
-  in this folder that covers the files changed, such as `writing.md` and `documentation.md` for
-  text, `rust.md` for Rust, `testing.md` for tests, and `dependencies.md` for manifests
+  in this folder that covers the files changed, such as `writing.md` for text,
+  `rust.md` for Rust, `testing.md` for tests, and `dependencies.md` for manifests
 - **Never commit:** `target/`, `fuzz/crashes/`, and everything else `.gitignore` lists
 - **Push effect:** a push to `main`, or a pull request to it, runs CodeQL code scanning
   (`.github/workflows/codeql.yml`); nothing deploys or publishes. From M0.8 (the CI workflow), it

@@ -14,8 +14,7 @@ shared library of rules and skills, taken at commit `3afa240`.
 - Never edit a copied skill here; it has no values of its own and reads
   them from the rules.
 - Where a Doctrina rule and a hardshellDB rule differ, the hardshellDB
-  rule wins: `documentation.md` over `writing.md`, and `AGENTS.md` over
-  both.
+  rule wins, and `AGENTS.md` wins over both.
 
 **Project skills** (in `.claude/skills`):
 
@@ -43,13 +42,11 @@ that matches:
 | Rule file | Loads for | Covers |
 | :- | :- | :- |
 | `writing.md` (Doctrina) | Every session | All prose: docs, comments, messages, commit messages |
-| `documentation.md` | Every session | hardshellDB's additions to `writing.md`, which win where the two differ |
 | `commits.md` (Doctrina) | Every session | Commit messages, read-only Git, and how to split work into commits |
 | `dependencies.md` (Doctrina) | Every session | Everything the project uses but didn't write, from crates to CI actions |
 | `testing.md` (Doctrina) | Every session | Never weakening a test, coverage, strict tests, fuzzing, CI |
 | `rust.md` (Doctrina) | Rust source, manifests, the toolchain and lint files | How to write Rust here |
 | `roadmap-and-docs.md` (Doctrina) | `docs/`, `AGENTS.md`, `CONTRIBUTING.md`, `README.md`, diagrams | The roadmap, ADRs, specs, and status |
-| `manifests.md` | Cargo manifests, `Cargo.lock`, `.cargo/`, `xtask`, the toolchain file | The dependency matrix, lints, the lockfile, build scripts |
 | `storage-and-durability.md` | `os`, `storage`, the encodings in `types`, format fixtures | Durability invariants and crash coverage |
 | `untrusted-input.md` | Every parser and decoder: `sql`, `storage`, `types`, `wire`, `core`'s CSV and varints, the server, fuzz corpora | Hostile input, limits, fuzzing |
 | `sql-semantics.md` | `sql`, `plan`, `exec`, `types`, SLT files, `docs/sql-reference.md` | PostgreSQL semantics and SQLSTATE codes |

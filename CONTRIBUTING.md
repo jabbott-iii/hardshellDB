@@ -118,9 +118,7 @@ criteria are met and its verification commands passed.
 [`.claude/rules/writing.md`](.claude/rules/writing.md) says how to write
 docs, READMEs, and Rust doc comments: for a student and a senior engineer
 at once, explaining each term a student might not know, and in American
-English. [`.claude/rules/documentation.md`](.claude/rules/documentation.md)
-adds hardshellDB's own conventions, such as KiB for powers of 1,024, and
-[`.claude/rules/roadmap-and-docs.md`](.claude/rules/roadmap-and-docs.md)
+English. [`.claude/rules/roadmap-and-docs.md`](.claude/rules/roadmap-and-docs.md)
 says how the roadmap, the ADRs, and the specs are kept.
 
 ## Commits and pull requests

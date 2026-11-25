@@ -55,7 +55,7 @@ and before breadth.
 ## Performance budgets
 
 These are the targets we test against. They are **targets, not
-measurements**: nothing is built yet. No reference machine is named yet:
+measurements**: none has been measured yet. No reference machine is named yet:
 record one here (CPU, RAM, storage device, OS, filesystem) before M9.7
 measures every budget on it. Durable-commit numbers depend on the storage
 device's flush latency, so they are stated relative to it.

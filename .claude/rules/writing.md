@@ -22,8 +22,7 @@ so they can fill them in.
   `SECURITY.md`, the rules and skills in `.claude/`, Rust doc comments (`///` and `//!`) and code
   comments in `crates/`, `apps/`, `xtask/`, and `bench/`, the errors, log messages, and help text
   in that code, comments in the manifests and in `.cargo/` and `.github/`, commit messages, and
-  pull request descriptions. `documentation.md` in this folder adds hardshellDB's own writing
-  rules, and wins where the two differ.
+  pull request descriptions.
 - **Project name:** hardshellDB. The package and binary names (`hardshelldb`, `hardshell-core`,
   `hardshell`, `hardshelld`) are lowercase and always in code formatting.
 - **Names to spell exactly:** `psql`, rustup, rustc, rustfmt, Clippy, Miri, MSVC, Apple silicon,

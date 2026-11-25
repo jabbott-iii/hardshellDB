@@ -104,8 +104,8 @@ Notes:
 ├── xtask/
 ├── bench/                    # hardshell-bench
 ├── tests/
-│   ├── slt/                  # SQL logic tests (*.slt), run by the facade's `slt` test
-│   └── fixtures/             # committed database files per format version
+│   ├── slt/                  # SQL logic tests (*.slt), run by the facade's `slt` test (M6.6)
+│   └── fixtures/             # committed database files per format version (M11.1)
 ├── fuzz/corpus/              # seed inputs per fuzz target
 └── docs/
 ```

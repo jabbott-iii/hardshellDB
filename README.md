@@ -21,10 +21,25 @@ repository.
 
 ## Status
 
-**Planning.** Nothing is built yet. The design, the decisions behind it,
-and a task-by-task roadmap are in [`docs/`](docs/). Work starts with
-roadmap milestone M0 (the guarded workspace), then builds the storage
-engine and its crash tests (M1–M3) before any SQL.
+**Groundwork.** No SQL runs yet, and nothing can open a database. What
+exists is most of milestone M0, the guarded workspace (tasks M0.1–M0.6 in
+the [roadmap](docs/roadmap.md)):
+
+- The workspace: every crate is in place, and all but two are still empty.
+- `hardshell-core`: SQLSTATE error codes, CRC-32C checksums,
+  variable-length integers (varints), hashing, a seeded random number
+  generator, a property-test harness (it runs a test on many generated
+  inputs), and logging.
+- `xtask`: the checks that fail on a third-party crate, a dependency
+  between crates that the architecture forbids, `unsafe` code outside
+  the places the rules allow, file access that bypasses the OS layer, a
+  missing license header, or test-only code in a release build. It also
+  holds a mutation fuzzer, whose one target so far is the varint decoder.
+
+Next come the benchmark harness and the CI workflow (M0.7 and M0.8), then
+the storage engine and its crash tests (M1–M3), all before any SQL. The
+design, the decisions behind it, and the whole roadmap are in
+[`docs/`](docs/).
 
 | Milestone | What it delivers |
 | :- | :- |

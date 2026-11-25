@@ -30,7 +30,7 @@ code, commands and checks that do not exist yet: check before assuming.
 | :- | :- |
 | Anything | `docs/00-overview.md`, `docs/01-architecture.md`, `.claude/rules/commits.md`, `.claude/rules/testing.md` |
 | Any Rust code | `.claude/rules/rust.md` |
-| `Cargo.toml`, `Cargo.lock`, a new crate | `docs/02-dependency-policy.md`, `.claude/rules/dependencies.md`, `.claude/rules/manifests.md` |
+| `Cargo.toml`, `Cargo.lock`, a new crate | `docs/02-dependency-policy.md`, `.claude/rules/dependencies.md` |
 | `crates/core` | `docs/subsystems/core.md` |
 | `crates/os` | `docs/subsystems/os-and-vfs.md`, `docs/03-platforms.md` |
 | `crates/types` | `docs/subsystems/types-and-values.md` |
@@ -44,7 +44,7 @@ code, commands and checks that do not exist yet: check before assuming.
 | `crates/wire`, `apps/server` | `docs/subsystems/server-and-wire.md` |
 | Tests, CI, `xtask`, `tests/slt`, fuzzing, crash campaigns | `docs/04-quality.md` |
 | Packaging, versions, the file format promise | `docs/05-release.md` |
-| Any doc, README, or Rust doc comment | `.claude/rules/writing.md`, then `.claude/rules/documentation.md`, which wins where the two differ |
+| Any doc, README, or Rust doc comment | `.claude/rules/writing.md` |
 | The roadmap, an ADR, or a spec's structure | `.claude/rules/roadmap-and-docs.md` |
 | Why something is the way it is | `docs/decisions.md` |
 

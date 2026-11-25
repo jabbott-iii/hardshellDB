@@ -210,7 +210,7 @@ pub fn check_sized<T: std::fmt::Debug>(
 | :- | :- |
 | `fmt` | `cargo fmt --all -- --check` |
 | `clippy` | `cargo clippy --locked --offline --workspace --all-targets --all-features -- -D warnings` |
-| `test` | `cargo test --locked --offline --workspace --all-features` (includes the SLT runner and the doctests) |
+| `test` | `cargo test --locked --offline --workspace --all-features` (includes the doctests and, from M6.6, the SLT runner) |
 | `deps` | `cargo metadata --format-version 1 --all-features`, read by `xtask`'s own JSON reader; every package with a non-null `source` must appear in `xtask/deps-allowlist.txt` (`name version ADR-NNNN`) with its exact version; a path package that is not a member fails |
 | `layers` | Same metadata; each member's normal, dev and build dependencies on other members, on every target, must be within its row of the dependency matrix; a member with no row fails. A crate depending on itself (to turn on a feature for its own tests) is not an edge. The matrix is a `const` table in `xtask`; a unit test compares it with `docs/01-architecture.md` |
 | `unsafe-audit` | Lexes every `.rs` file under the workspace root, so comments and strings are not code, and judges each by where it sits; it skips `.git`, the build directory, and a directory outside every package that holds a `CACHEDIR.TAG` with the tag's signature or a `.git` of its own (another checkout). No `unsafe` outside `hardshell-os`, except in the `unsafe impl GlobalAlloc` of a counting allocator directly in a crate's `tests/` (ADR-0017); none in `hardshell-os` until an accepted ADR is listed in `OS_UNSAFE_ADRS` (`xtask/src/unsafe_audit.rs`). An attribute lowering `unsafe_code` (`allow`, `expect` or `warn`, in `cfg_attr` or not) only on that impl, or at `hardshell-os`'s crate root once an ADR allows it. Every library root carries `#![doc(test(attr(forbid(unsafe_code))))]`: rustdoc compiles doc examples without the workspace's lints, and with it the compiler rejects `unsafe` in any of them. Every `unsafe` block, impl, extern block and unsafe attribute has its own `// SAFETY:` comment, ending within the 3 lines above it (`unsafe fn`, `trait` and `static` declarations state `# Safety` in their docs instead). Every target's root lies in its own package, and a library's, binary's or build script's not in `tests/`; a `#[path]` module or an `include!` names a `.rs` file in the same top-level directory of its package (`src/`, `tests/`, ...). No `std::fs` or `std::os::*::fs` outside `hardshell-os`, `xtask`, the apps and a package's `tests/`, nor what could hide one: a glob or rename of `std`, or an import of `std::os` or a whole OS module (`use std::os::unix`). Prints per-crate counts |
@@ -219,7 +219,8 @@ pub fn check_sized<T: std::fmt::Debug>(
 | `workflows` (from M0.8) | Every GitHub Action pinned by full commit SHA with a version comment; top-level permissions `contents: read` or `{}`; `persist-credentials: false` on checkout; no `pull_request_target` |
 | `ci` | All of the above in order; stops at the first failure and prints a summary table |
 
-Each check is also a subcommand (`cargo xtask deps`). Exit status: 0 pass,
+Each check from `deps` on is also a subcommand (`cargo xtask deps`);
+`fmt`, `clippy`, and `test` run only inside `ci`. Exit status: 0 pass,
 1 fail (a check that cannot run fails), 2 command line not understood.
 Every Cargo command `xtask` runs that resolves dependencies is `--locked`
 and `--offline`. `cargo xtask` itself is a plain `cargo run`, which
@@ -232,8 +233,8 @@ refreshes a stale lockfile before `xtask` starts, so CI runs
   `ubuntu-latest`, `macos-latest`, `windows-latest`:
   1. Turn `core.autocrlf` off, then check out.
   2. Install the pinned toolchain from `rust-toolchain.toml`.
-  3. `cargo xtask ci`.
-  4. Linux only: `cargo xtask fuzz-smoke --secs 30`.
+  3. `cargo --locked xtask ci`.
+  4. Linux only: `cargo --locked xtask fuzz-smoke --secs 30`.
   5. Linux only (from M2.6): `cargo xtask crash --iterations 2000`.
 
   A newer push to a pull request cancels its older run.
