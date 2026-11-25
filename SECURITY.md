@@ -1,8 +1,8 @@
-# Security Policy
+# Security policy
 
 ## Supported versions
 
-hardshellDB is in planning and has no releases. Until the first release,
+hardshellDB has no releases yet. Until the first release,
 only `main` is supported. From the first release on, this table lists the
 supported versions (`docs/05-release.md`).
 
@@ -16,7 +16,7 @@ supported versions (`docs/05-release.md`).
 Report vulnerabilities privately, through GitHub's private vulnerability
 reporting:
 
-1. On the repository's **Security** tab, select **Report a
+1. On the repository's **Security and quality** tab, select **Report a
    vulnerability**, or go to
    <https://github.com/jabbott-iii/hardshellDB/security/advisories/new>.
 2. Fill in the form. Only you, the maintainer, and collaborators the
@@ -88,7 +88,10 @@ A full threat model is written in roadmap task M11.7.
   (`docs/02-dependency-policy.md`).
 - No `unsafe` code (ADR-0013), except a counting allocator in some test
   binaries, which never ships (ADR-0017).
-- Every page and WAL frame is checksummed (ADR-0009).
-- Every parser and decoder is fuzzed in CI, and crash campaigns run under a
-  fault-injecting file system (`docs/04-quality.md`).
+- Every page and WAL frame will carry a CRC-32C checksum (ADR-0009).
+  M1.4 adds it to the page format, and M2.1 to the WAL frame format.
+- Each parser and decoder gets a fuzz target for `cargo xtask fuzz-smoke`.
+  CI runs them on every change from M0.8, the task that adds the CI
+  workflow. Crash campaigns under a fault-injecting file system arrive in
+  M2.6 (`docs/04-quality.md`).
 - CI actions are pinned by commit SHA, with read-only default permissions.
