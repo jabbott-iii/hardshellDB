@@ -25,3 +25,13 @@ rustc-ice-*.txt
 
 # `cargo xtask fuzz-smoke` findings (docs/04-quality.md, "Fuzz smoke")
 /fuzz/crashes/
+
+# Local environment files, which can hold secrets; the example stays tracked
+.env
+.env.*
+!.env.example
+
+# Claude Code's personal files. `.claude/settings.json`, `.claude/rules/`,
+# `.claude/skills/`, and `CLAUDE.md` stay tracked.
+.claude/settings.local.json
+CLAUDE.local.md
