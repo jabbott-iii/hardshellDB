@@ -11,8 +11,9 @@ each value by its bold name. If a value still reads `[FILL IN: …]`, the rule i
 yet. Work out that value from the repository itself, and tell the user which values are missing
 so they can fill them in. Until **Git access** is filled in, treat it as "read-only".
 
-- **Git access:** "read-only" (`AGENTS.md`, rule 9: Git is read-only for agents;
-  `.claude/settings.json` denies the commands that commit, push, rebase, merge, or tag)
+- **Git access:** "commit on request", for staging and committing only (`AGENTS.md`, rule 9:
+  agents commit only when asked). Agents never amend, rebase, merge, tag, or push, even when
+  asked, and `.claude/settings.json` denies the commands that push, rebase, merge, or tag
 - **Done checks:** for a roadmap task, the "Definition of done for a roadmap task" in `AGENTS.md`,
   with `cargo --locked xtask ci` passing; for any change, the "Before finishing" steps of each rule
   in this folder that covers the files changed, such as `writing.md` for text,

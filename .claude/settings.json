@@ -25,7 +25,6 @@
       "Bash(cargo install *)"
     ],
     "deny": [
-      "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(git rebase *)",
       "Bash(git merge *)",

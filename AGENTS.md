@@ -89,8 +89,10 @@ code, commands and checks that do not exist yet: check before assuming.
      (`.claude/rules/writing.md`, "Existing British spellings").
    - Preserve public APIs and the on-disk format unless the task authorizes
      a break; record breaks in `docs/decisions.md`.
-9. **Git is read-only for agents.** Do not commit, amend, rebase, merge, tag,
-   push, force-push or rewrite history. Leave all changes uncommitted for
+9. **Agents commit only when asked.** Stage (by path) and commit only when
+   the user asks for it in the current conversation; each request covers
+   only the commits it names. Never amend, rebase, merge, tag, push,
+   force-push, or rewrite history. Otherwise, leave changes uncommitted for
    human review, and end the task with a copy-ready commit message
    (`.claude/rules/commits.md`).
 10. **No secrets.** Never write tokens, keys, certificates or passwords into

@@ -42,7 +42,7 @@ that matches:
 | Rule file | Loads for | Covers |
 | :- | :- | :- |
 | `writing.md` (Doctrina) | Every session | All prose: docs, comments, messages, commit messages |
-| `commits.md` (Doctrina) | Every session | Commit messages, read-only Git, and how to split work into commits |
+| `commits.md` (Doctrina) | Every session | Commit messages, committing only on request, and how to split work into commits |
 | `dependencies.md` (Doctrina) | Every session | Everything the project uses but didn't write, from crates to CI actions |
 | `testing.md` (Doctrina) | Every session | Never weakening a test, coverage, strict tests, fuzzing, CI |
 | `rust.md` (Doctrina) | Rust source, manifests, the toolchain and lint files | How to write Rust here |
@@ -56,8 +56,11 @@ that matches:
 
 - `.claude/settings.json` pre-approves routine `cargo` commands and
   read-only Git commands.
-- It denies Git operations that publish or finalize changes, plus
-  `cargo publish` and `cargo login`.
+- It denies the Git operations that publish changes or rewrite history
+  (push, rebase, merge, tag, cherry-pick, `am`, `reset --hard`, and the
+  filter commands), plus `cargo publish` and `cargo login`.
+- It neither allows nor denies `git add` and `git commit`, so the
+  permission mode decides whether Claude Code asks before each one.
 - It asks before `cargo add`, `cargo remove`, `cargo update` and
   `cargo install`.
 - These are guardrails, not a security boundary. The rules in `AGENTS.md`

@@ -96,8 +96,8 @@ Rules:
 - No caches in the release workflow: a release builds from its commit
   alone.
 - Actions are pinned by commit SHA (`cargo xtask workflows`).
-- Agents never tag or publish (`AGENTS.md`, rule 9: Git is read-only for
-  agents).
+- Agents never tag or publish (`AGENTS.md`, rule 9: agents commit only
+  when asked, and never tag or push).
 
 ## Operating the engine
 

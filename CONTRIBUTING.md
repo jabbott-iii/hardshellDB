@@ -158,8 +158,9 @@ Agents follow [`AGENTS.md`](AGENTS.md). Claude Code also loads
 [`CLAUDE.md`](CLAUDE.md), the rules in `.claude/rules/`, and the project
 skills in `.claude/skills/`, which `CLAUDE.md` lists. Several of them are
 copies from [Doctrina](https://github.com/jabbott-iii/Doctrina), a shared
-library of rules and skills. Agents never commit, push or tag; a human
-reviews and commits their work.
+library of rules and skills. Agents stage and commit only when the person
+working with them asks, and never push, rebase, merge, or tag, so a human
+reviews every change before it reaches GitHub.
 
 ## Bugs and feature requests
 
