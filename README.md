@@ -1,23 +1,25 @@
 # hardshellDB
 
-hardshellDB is an all-in-one SQL database engine and library, written in
-Rust for Linux, macOS and Windows. It is one engine with three ways in:
+hardshellDB is an all-in-one SQL database engine and library for Linux,
+macOS, and Windows, written in Rust. It doesn't run SQL yet ([Status](#status)
+says what exists), so this overview describes the design. It will be one
+engine with three ways in:
 
-- **Embedded:** add the `hardshelldb` crate, open a file, run SQL. No
-  server, no configuration.
-- **Shell:** `hardshell app.hsdb` runs SQL and psql-style backslash
-  commands, imports and exports CSV, and dumps databases as SQL.
-- **Server:** `hardshelld` serves the same engine over the PostgreSQL wire
-  protocol, so `psql` and PostgreSQL drivers can connect.
+- **Embedded (M6):** an application will add the `hardshelldb` crate, open
+  a file, and run SQL, with no server and no configuration.
+- **Shell (M8):** `hardshell app.hsdb` will run SQL and psql-style
+  backslash commands, import and export CSV, and dump databases as SQL.
+- **Server (M12):** `hardshelld` will serve the same engine over the
+  PostgreSQL wire protocol, so `psql` and PostgreSQL drivers can connect.
 
-Its SQL is PostgreSQL-flavored and strictly typed, with PostgreSQL's
-SQLSTATE error codes. A database is a single file of checksummed pages with
-B+tree tables and indexes and a write-ahead log. One writer and many
-readers work at once, and every transaction is serializable.
+Its SQL will be PostgreSQL-flavored and strictly typed, with PostgreSQL's
+SQLSTATE error codes. A database will be a single file of checksummed
+pages, with B+tree tables and indexes and a write-ahead log. One writer and
+many readers will work at once, and every transaction will be serializable.
 
-It is written from the ground up, with no third-party crates: the parser,
-storage engine, planner, executor, types and test harnesses are all in this
-repository.
+It has no third-party crates: the parser, storage engine, planner,
+executor, types, and test harnesses are each written here, from the ground
+up, as the roadmap builds them.
 
 ## Status
 
