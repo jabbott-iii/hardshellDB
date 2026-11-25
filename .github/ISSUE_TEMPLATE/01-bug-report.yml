@@ -36,6 +36,12 @@ body:
     attributes:
       label: "OS version and filesystem"
       description: "For example, Ubuntu 24.04 on ext4, or macOS 15.2 on APFS."
+  - type: input
+    id: rust-version
+    attributes:
+      label: "Rust version"
+      description: "The output of `rustc --version` in the project that builds
+        hardshellDB."
   - type: textarea
     id: steps
     attributes:

@@ -3,3 +3,6 @@ contact_links:
   - name: "Report a security vulnerability"
     url: "https://github.com/jabbott-iii/hardshellDB/security/advisories/new"
     about: "Report it privately, as the security policy describes."
+  - name: "Ask a question"
+    url: "https://github.com/jabbott-iii/hardshellDB/discussions"
+    about: "Ask and answer questions about hardshellDB in Discussions."
